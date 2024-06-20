@@ -1,0 +1,11 @@
+# End Goals
+- Want to be able to create new blocks and items 
+- Want to be able to create, save, copy, and paste schematics
+- Want mobs
+- Want a scripting language
+- Clone of minecraft atleast up to alpha
+- Want to be able to load and save worlds
+- Want multiplayer
+- Generative AI
+- Procedural Generation
+- Faster than minecraft
