@@ -11,8 +11,8 @@
 
 #define DEFAULT_WINDOW_WIDTH 800U
 #define DEFAULT_WINDOW_HEIGHT 600U  
-#define DEFAULT_OPENGL_VERSION_MAJOR 3
-#define DEFAULT_OPENGL_VERSION_MINOR 3
+#define DEFAULT_OPENGL_VERSION_MAJOR 4
+#define DEFAULT_OPENGL_VERSION_MINOR 5
 
 
 
@@ -29,6 +29,7 @@ private:
     static GLFWwindow* window;
     static int window_width;
     static int window_height;
+    std::string m_glVersion;
     void GLFW_Init();
     void GLAD_Init();
 };

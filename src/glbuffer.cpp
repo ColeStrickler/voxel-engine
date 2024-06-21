@@ -10,13 +10,9 @@ VertexBuffer::VertexBuffer(uint32_t size)
 
 VertexBuffer::VertexBuffer(float *data, uint32_t size)
 {
-    printf("0\n");
     glCreateBuffers(1, &m_BufferId);
-    printf("1\n");
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
-    printf("2\n");
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
-    printf("3\n");
 }
 
 VertexBuffer::~VertexBuffer()

@@ -14,6 +14,7 @@ GLManager::GLManager()
 {
     GLFW_Init();
     GLAD_Init();
+    m_glVersion = std::string((char*)glGetString(GL_VERSION));
 }
 
 GLManager::~GLManager()

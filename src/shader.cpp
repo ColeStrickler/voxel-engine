@@ -4,10 +4,11 @@
 
 
 
-Shader::Shader(const std::string &shaderfile, unsigned int shader_type)
+Shader::Shader(const std::string &shaderfile, GLenum shader_type)
 {
     m_error = ShaderError::NO_ERROR_OK;
     m_shaderContent = FileToString(shaderfile);
+    m_ShaderType = shader_type;
     if (m_error != ShaderError::NO_ERROR_OK)
     {
         m_log = "Shader file unable to be read\n";
@@ -81,10 +82,36 @@ std::string Shader::FileToString(const std::string &FilePath)
     return file_content.str();
 }
 
+int ShaderProgram::GetUniformLocation(const std::string &UniformName)
+{
+    if (m_UniformCache.find(UniformName) != m_UniformCache.end())
+    {
+        return m_UniformCache[UniformName];
+    }
+    GLint location = glGetUniformLocation(m_ProgramId, UniformName.c_str());
+    m_UniformCache[UniformName] = location;
+    return location;
+}
+
+bool ShaderProgram::SetUniform1f(const std::string& name, float data)
+{
+    auto location = GetUniformLocation(name);
+    if (location == -1)
+    {
+        m_error = ShaderError::UNIFORM_SET_ERROR;
+        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        return false;
+    }
+    printf("location :%d data : %.2f\n", location, data);
+    glUniform1f(location, data);
+    return true;
+}
+
 ShaderProgram::ShaderProgram()
 {
     m_ProgramId = glCreateProgram();
-   
+    // allocate spot for GL_COMPUTE_SHADER, GL_VERTEX_SHADER, GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER, GL_GEOMETRY_SHADER, or GL_FRAGMENT_SHADER
+    m_shaders = std::vector<Shader*>(6, nullptr);
 }
 
 ShaderProgram::~ShaderProgram()
@@ -94,7 +121,15 @@ ShaderProgram::~ShaderProgram()
 
 void ShaderProgram::AddShader(Shader *shader)
 {
-    m_shaders.push_back(shader);
+    int shader_index = ShaderTypeIndex(shader);
+    if (shader_index < 0)
+    {
+        m_error = ShaderError::INVALID_SHADER_TYPE_ERROR;
+        m_log += "ShaderProgram::AddShader() --> ShaderError::INVALID_SHADER_TYPE_ERROR\n";
+        return;
+    }
+
+    m_shaders[shader_index] = shader;
 }
 
 void ShaderProgram::Bind() const
@@ -114,7 +149,8 @@ bool ShaderProgram::Compile()
     */
     for (auto& shader: m_shaders)
     {
-        shader->Attach(m_ProgramId);
+        if (shader != nullptr)
+            shader->Attach(m_ProgramId);
     }
 
     int success;
@@ -150,4 +186,19 @@ void ShaderProgram::DumpLog()
 {
     m_log.clear();
     m_log.shrink_to_fit();
+}
+
+int ShaderProgram::ShaderTypeIndex(Shader *shader)
+{
+    switch (shader->GetType())
+    {
+        case GL_COMPUTE_SHADER: return 0;
+        case GL_VERTEX_SHADER: return 1;
+        case GL_TESS_CONTROL_SHADER: return 2;
+        case GL_TESS_EVALUATION_SHADER: return 3;
+        case GL_GEOMETRY_SHADER: return 4;
+        case GL_FRAGMENT_SHADER: return 5;
+        default:
+            return -1;
+    }
 }
