@@ -20,12 +20,12 @@ VertexBuffer::~VertexBuffer()
     glDeleteBuffers(1, &m_BufferId);
 }
 
-void VertexBuffer::Bind()
+void VertexBuffer::Bind() const
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
 }
 
-void VertexBuffer::Unbind()
+void VertexBuffer::Unbind() const
 {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -52,12 +52,44 @@ IndexBuffer::~IndexBuffer()
     glDeleteBuffers(1, &m_BufferId);
 }
 
-void IndexBuffer::Bind()
+void IndexBuffer::Bind() const
 {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_BufferId);
 }
 
-void IndexBuffer::Unbind()
+void IndexBuffer::Unbind() const
 {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+BufferElement::BufferElement(const std::string& Name, ShaderDataType type, bool normalized) :
+    m_Offset(0), m_Name(Name), m_Type(type), m_Size(ShaderDataTypeSize(type)), m_Normalized(normalized), m_Count(ShaderDataTypeCount(type))
+{
+    printf("Count: %d\n", m_Count);
+}
+
+BufferElement::~BufferElement()
+{
+}
+
+BufferLayout::BufferLayout(std::initializer_list<BufferElement> elements) :
+    m_Elements(elements)
+{
+    InitLayout();    
+}
+
+BufferLayout::~BufferLayout()
+{
+}
+
+void BufferLayout::InitLayout()
+{
+    uint32_t offset = 0;
+    m_Stride = 0;
+    for (auto& element : m_Elements)
+    {
+        element.m_Offset = offset;
+        offset += element.m_Size;
+        m_Stride += element.m_Size;
+    }
 }
