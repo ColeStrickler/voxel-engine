@@ -7,6 +7,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -59,7 +61,10 @@ public:
     std::string FetchLog() const;
     ShaderError CheckError() const;
     void DumpLog();
-     bool SetUniform1f(const std::string& name, float data);
+    bool SetUniform1f(const std::string& name, float data);
+    bool SetUniform1i(const std::string& name, int data);
+    bool SetUniformBool(const std::string& name, bool data);
+    bool SetUniformMat4(const std::string& name, glm::mat4 data);
 private:
     int GetUniformLocation(const std::string& UniformName);
    

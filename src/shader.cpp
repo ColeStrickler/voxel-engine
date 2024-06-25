@@ -102,10 +102,53 @@ bool ShaderProgram::SetUniform1f(const std::string& name, float data)
         m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
         return false;
     }
-    printf("location :%d data : %.2f\n", location, data);
     glUniform1f(location, data);
     return true;
 }
+
+bool ShaderProgram::SetUniform1i(const std::string& name, int data)
+{
+    auto location = GetUniformLocation(name);
+    if (location == -1)
+    {
+        m_error = ShaderError::UNIFORM_SET_ERROR;
+        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        return false;
+    }
+    glUniform1i(location, data);
+    return true;
+}
+
+
+bool ShaderProgram::SetUniformBool(const std::string& name, bool data)
+{
+    auto location = GetUniformLocation(name);
+    if (location == -1)
+    {
+        m_error = ShaderError::UNIFORM_SET_ERROR;
+        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        return false;
+    }
+    glUniform1i(location, data);
+    return true;
+}
+
+bool ShaderProgram::SetUniformMat4(const std::string& name, glm::mat4 data)
+{
+    auto location = GetUniformLocation(name);
+    if (location == -1)
+    {
+        m_error = ShaderError::UNIFORM_SET_ERROR;
+        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        return false;
+    }
+    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
+    return true;
+}
+
+
+
+
 
 ShaderProgram::ShaderProgram()
 {

@@ -41,5 +41,7 @@ void VertexArray::AddVertexBuffer(const VertexBuffer& vertex_buffer)
         glEnableVertexAttribArray(index); // must enable the index for it to be used
         glVertexAttribPointer(index, element.GetCount(), ShaderDataTypeToGLEnum(element.GetType()), element.m_Normalized, layout.GetStride(), (const void*)offset);
         offset += element.m_Size;
+        index++;
     }
+    
 }

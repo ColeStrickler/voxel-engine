@@ -4,12 +4,15 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include "gl.h"
 #include "shader.h"
 #include "glbuffer.h"
 #include "glvertexarray.h"
 #include <filesystem>
+#include "texture.h"
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
@@ -30,7 +33,7 @@ int main()
 {
 
     GLManager gl;
-    
+    gl.SetDepthTesting(true);
    // std::cout << "OpenGL version: " << version << std::endl;
 
 
@@ -107,7 +110,6 @@ int main()
     ShaderProgram shaderProgram;
     shaderProgram.AddShader(&vertex_shader);
     shaderProgram.AddShader(&fragment_shader);
-    printf("hjere!\n");
     //glAttachShader(shaderProgram, vertexShader);
     //glAttachShader(shaderProgram, fragmentShader);
     if (!shaderProgram.Compile())
@@ -115,7 +117,7 @@ int main()
         std::cout << shaderProgram.FetchLog();
         return -1;
     }
-    printf("x\n");
+
     //vertex_shader.Attach(shaderProgram);
     //fragment_shader.Attach(shaderProgram);
 
@@ -133,26 +135,63 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f, // left  
-         0.5f, -0.5f, 0.0f, // right 
-         0.0f,  0.5f, 0.0f  // top   
-    }; 
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-    uint32_t indices[] = {
-        0, 1, 2
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
+
     //VertexBuffer 
-    BufferLayout layout({BufferElement("COORDS", ShaderDataType::Float3, false)});
+    BufferLayout layout({BufferElement("COORDS", ShaderDataType::Float3, false),\
+    BufferElement("COORDS", ShaderDataType::Float2, false) });
     VertexArray va;
     VertexBuffer vbo(vertices, sizeof(vertices));
     vbo.SetLayout(layout);
-    IndexBuffer ibo(indices, 3);
+   // IndexBuffer ibo(indices, 6);
     va.AddVertexBuffer(vbo);
-    va.AddIndexBuffer(ibo);
+   // va.AddIndexBuffer(ibo);
+    Texture tex(getcwd()+"/src/textures/container.jpg", "container");
+
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
    // glBindVertexArray(VAO);
     //vbo.Bind();
-    printf("x\n");
     //glBindBuffer(GL_ARRAY_BUFFER, VBO);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
@@ -160,7 +199,6 @@ int main()
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
    // vbo.Unbind();
-    printf("x\n");
 
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
@@ -172,7 +210,6 @@ int main()
     // render loop
     // -----------
 
-    printf("here!\n");
     IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -181,15 +218,21 @@ int main()
 	ImGui_ImplOpenGL3_Init("#version 330");
     float opacity = 0.5f;
     bool sign = false;
+
+    shaderProgram.Bind();
+    if(!shaderProgram.SetUniform1i("texture1", 0))
+    {
+        printf("Could not bind texture1\n");
+    }
+
+    glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+    glm::mat4 view          = glm::mat4(1.0f);
+    glm::mat4 projection    = glm::perspective(glm::radians(45.0f), (float)DEFAULT_WINDOW_WIDTH/(float)DEFAULT_WINDOW_HEIGHT, 0.1f, 100.0f);
+    
+    view  = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
-        if (opacity >= 1.0f || opacity <= 0.0f)
-            sign = !sign;
-
-        if (sign)
-            opacity += 0.01f;
-        else
-            opacity -= 0.01f; 
+        model = glm::rotate(model, .1f, glm::vec3(0.5f, 1.0f, 0.0f));
         // input
         // -----
         processInput(gl.GetWindow());
@@ -197,7 +240,7 @@ int main()
         // render
         // ------
         glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // tell OpenGL a new frame is about to begin
         ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -206,16 +249,25 @@ int main()
 
         // draw our first triangle
         //glUseProgram(shaderProgram);
+        
+        
+        
+        tex.SetTextureSlot(0);
+        tex.Bind();
+        
+        
+        
         shaderProgram.Bind();
-        if (!shaderProgram.SetUniform1f("opacity", opacity))
-            exit(-1);
-
+        shaderProgram.SetUniformMat4("model", model);
+        shaderProgram.SetUniformMat4("view", view);
+        shaderProgram.SetUniformMat4("projection", projection);
+        shaderProgram.SetUniformBool("showTexture", sign);
 
         va.Bind();
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
        // glDrawArrays(GL_TRIANGLES, 0, 3);
         
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         // glBindVertexArray(0); // no need to unbind it every time 
 
 
@@ -223,13 +275,9 @@ int main()
         ImGui::Begin("My name is window, ImGUI window");
 		// Text that appears in the window
 		ImGui::Text("Hello there adventurer!");
-		// Checkbox that appears in the window
-		//ImGui::Checkbox("Draw Triangle", &drawTriangle);
-		// Slider that appears in the window
-		//ImGui::SliderFloat("Size", &size, 0.5f, 2.0f);
-		// Fancy color editor that appears in the window
-		//ImGui::ColorEdit4("Color", color);
-		// Ends the windowfloat)*9
+        if (ImGui::Button("Click Me")) {
+            sign = !sign;
+        }
 		ImGui::End();
 
 

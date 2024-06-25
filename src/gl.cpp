@@ -15,6 +15,7 @@ GLManager::GLManager()
     GLFW_Init();
     GLAD_Init();
     m_glVersion = std::string((char*)glGetString(GL_VERSION));
+    //m_Camera = Camera(static_cast<float>(window_height), static_cast<float>(window_width));
 }
 
 GLManager::~GLManager()
@@ -27,11 +28,26 @@ void GLManager::SetWindowSize(GLFWwindow *window, int width, int height)
     glViewport(0, 0, width, height);
     GLManager::window_height = height;
     GLManager::window_width = width;
+    //m_Camera.ChangeScreenDimensions(static_cast<float>(GLManager::window_height), static_cast<float>(GLManager::window_width));
 }
 
 GLFWwindow* GLManager::GetWindow()
 {
     return GLManager::window;
+}
+
+void GLManager::SetDepthTesting(bool enable)
+{
+    // if depth testing is set, OpenGL will discard any pixels that are behind anoth in the fragment shader
+    if (enable)
+        glEnable(GL_DEPTH_TEST); 
+    else
+        glDisable(GL_DEPTH_TEST);
+}
+
+bool GLManager::UpdateCameraMVP(ShaderProgram *prog)
+{
+    return 0; //m_Camera.SetMVP(prog);
 }
 
 void GLManager::GLFW_Init()
@@ -68,4 +84,52 @@ void GLManager::GLAD_Init()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return;
     }
+}
+
+Camera::Camera(float screen_height, float screen_width) : m_Model(glm::mat4(1.0f)),  m_View(glm::mat4(1.0f))
+{
+    ChangeScreenDimensions(screen_width, screen_height);
+}
+
+Camera::~Camera()
+{
+    DumpLog();
+}
+
+void Camera::ChangeScreenDimensions(float width, float height)
+{
+    m_ScreenHeight = height;
+    m_ScreenWidth = width;
+    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth/m_ScreenHeight, 0.1f, 100.0f);
+}
+
+bool Camera::SetMVP(ShaderProgram *prog)
+{
+    if (!prog->SetUniformMat4("model", m_Model))
+    {
+        m_Log += "Camera::SetMVP() --> failed to set model matrix.\n";
+        return false;
+    }
+    
+    if(!prog->SetUniformMat4("view", m_View))
+    {
+        m_Log += "Camera::SetMVP() --> failed to set view matrix.\n";
+        return false;
+    }
+    if(!prog->SetUniformMat4("proj", m_Projection))
+    {
+        m_Log += "Camera::SetMVP() --> failed to set projection matrix.\n";
+        return false;
+    }
+}
+
+std::string Camera::FetchLog()
+{
+    return m_Log;
+}
+
+void Camera::DumpLog()
+{
+    m_Log.clear();
+    m_Log.shrink_to_fit();
 }
