@@ -14,8 +14,8 @@
 #include <filesystem>
 #include "texture.h"
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
 
+GLManager gl;
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -32,7 +32,7 @@ std::string getcwd()
 int main()
 {
 
-    GLManager gl;
+    
     gl.SetDepthTesting(true);
    // std::cout << "OpenGL version: " << version << std::endl;
 
@@ -228,14 +228,19 @@ int main()
     glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 view          = glm::mat4(1.0f);
     glm::mat4 projection    = glm::perspective(glm::radians(45.0f), (float)DEFAULT_WINDOW_WIDTH/(float)DEFAULT_WINDOW_HEIGHT, 0.1f, 100.0f);
-    
-    view  = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    glm::vec3 cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+
+
+    model = glm::translate(model, cube_pos);
+    view  = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
+        //gl.CalcDeltaTime();
+        gl.PerFrame();
         model = glm::rotate(model, .1f, glm::vec3(0.5f, 1.0f, 0.0f));
         // input
         // -----
-        processInput(gl.GetWindow());
+       // processInput(gl.GetWindow(), view);
 
         // render
         // ------
@@ -259,8 +264,11 @@ int main()
         
         shaderProgram.Bind();
         shaderProgram.SetUniformMat4("model", model);
-        shaderProgram.SetUniformMat4("view", view);
-        shaderProgram.SetUniformMat4("projection", projection);
+        if(!gl.UpdateCameraMVP(&shaderProgram))
+        {
+            std::cout << gl.GetCamera()->FetchLog() << std::endl;
+            exit(-1);
+        }
         shaderProgram.SetUniformBool("showTexture", sign);
 
         va.Bind();
@@ -288,7 +296,6 @@ int main()
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(gl.GetWindow());
-        glfwPollEvents();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
@@ -305,11 +312,7 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
+
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
