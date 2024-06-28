@@ -1,7 +1,9 @@
 #include "shader.h"
 #include <fstream>
 #include <sstream>
+#include "logger.h"
 
+extern Logger logger;
 
 
 Shader::Shader(const std::string &shaderfile, GLenum shader_type)
@@ -99,7 +101,7 @@ bool ShaderProgram::SetUniform1f(const std::string& name, float data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
         return false;
     }
     glUniform1f(location, data);
@@ -112,7 +114,7 @@ bool ShaderProgram::SetUniform1i(const std::string& name, int data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniform1i() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
         return false;
     }
     glUniform1i(location, data);
@@ -126,7 +128,7 @@ bool ShaderProgram::SetUniformBool(const std::string& name, bool data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformBool() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
         return false;
     }
     glUniform1i(location, data);
@@ -139,7 +141,7 @@ bool ShaderProgram::SetUniformMat4(const std::string& name, glm::mat4 data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        m_log += "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location\n";
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformMat4() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
         return false;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
@@ -168,7 +170,7 @@ void ShaderProgram::AddShader(Shader *shader)
     if (shader_index < 0)
     {
         m_error = ShaderError::INVALID_SHADER_TYPE_ERROR;
-        m_log += "ShaderProgram::AddShader() --> ShaderError::INVALID_SHADER_TYPE_ERROR\n";
+        logger.Log(LOGTYPE::ERROR, "ShaderProgram::AddShader() --> ShaderError::INVALID_SHADER_TYPE_ERROR");
         return;
     }
 
@@ -203,7 +205,7 @@ bool ShaderProgram::Compile()
     glGetProgramiv(m_ProgramId, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(m_ProgramId, 512, NULL, infoLog);
-        m_log = "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" + std::string(infoLog);
+        logger.Log(LOGTYPE::ERROR, "ShaderProgram::Compile() " + std::string(infoLog));
         m_error = ShaderError::PROGRAM_LINK_ERROR;
         return false;
     }
@@ -215,21 +217,12 @@ void ShaderProgram::Delete() const
     glDeleteProgram(m_ProgramId);
 }
 
-std::string ShaderProgram::FetchLog() const
-{
-    return m_log;
-}
 
 ShaderError ShaderProgram::CheckError() const
 {
     return m_error;
 }
 
-void ShaderProgram::DumpLog()
-{
-    m_log.clear();
-    m_log.shrink_to_fit();
-}
 
 int ShaderProgram::ShaderTypeIndex(Shader *shader)
 {

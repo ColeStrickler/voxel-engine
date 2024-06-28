@@ -92,6 +92,10 @@ void GLManager::PerFrame()
     CalcDeltaTime();
     m_Camera.UpdateCameraVectors();
     m_Camera.GetViewMatrix();
+
+
+    glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void GLManager::GLFW_Init()

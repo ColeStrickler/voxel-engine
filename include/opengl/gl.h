@@ -8,12 +8,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <shader.h>
+#include "shader.h"
 #include <string>
 #include <iostream>
 #include <functional> // for std::bind
-#define DEFAULT_WINDOW_WIDTH 800U
-#define DEFAULT_WINDOW_HEIGHT 600U  
+#define DEFAULT_WINDOW_WIDTH 1200U
+#define DEFAULT_WINDOW_HEIGHT 900U  
 #define DEFUALT_MOVE_SPEED 10.0f
 #define DEFAULT_MOUSE_SENSITIVITY 0.05f
 #define DEFAULT_OPENGL_VERSION_MAJOR 4
@@ -74,7 +74,7 @@ public:
     Camera* GetCamera(){return &m_Camera;}
     static std::unordered_map<int, std::function<void()>> m_KeyCallbacks;
     void CalcDeltaTime() {float curr = glfwGetTime(); m_DeltaTime = curr-m_LastTime; m_LastTime=curr;};
-    float GetDeltaTime() {printf("%lf\n", m_DeltaTime);return m_DeltaTime;}
+    float GetDeltaTime() {return m_DeltaTime;}
 
 
     void PerFrame(); // put computation needing to be handled per frame here

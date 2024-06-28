@@ -13,8 +13,11 @@
 #include "glvertexarray.h"
 #include <filesystem>
 #include "texture.h"
+#include "logger.h"
+#include "gui_manager.h"
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-
+extern Logger logger;
+extern GUI GUI_Manager;
 GLManager gl;
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -34,8 +37,12 @@ int main()
 
     
     gl.SetDepthTesting(true);
-   // std::cout << "OpenGL version: " << version << std::endl;
 
+    GUI_Manager.RegisterLogTarget(&logger);
+
+   // std::cout << "OpenGL version: " << version << std::endl;
+    logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
+    logger.Log(LOGTYPE::INFO, "test");
 
     // glfw: initialize and configure
     // ------------------------------
@@ -114,7 +121,6 @@ int main()
     //glAttachShader(shaderProgram, fragmentShader);
     if (!shaderProgram.Compile())
     {
-        std::cout << shaderProgram.FetchLog();
         return -1;
     }
 
@@ -237,6 +243,7 @@ int main()
     {
         //gl.CalcDeltaTime();
         gl.PerFrame();
+        logger.WriteLogs();
         model = glm::rotate(model, .1f, glm::vec3(0.5f, 1.0f, 0.0f));
         // input
         // -----
@@ -244,12 +251,9 @@ int main()
 
         // render
         // ------
-        glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
         // tell OpenGL a new frame is about to begin
-        ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
+        GUI_Manager.Begin();
 
 
         // draw our first triangle
@@ -278,20 +282,20 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
         // glBindVertexArray(0); // no need to unbind it every time 
 
-
-
-        ImGui::Begin("My name is window, ImGUI window");
+        ImVec2 tabBarSize(ImGui::GetIO().DisplaySize.x, 100);  
+        ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - tabBarSize.y), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, tabBarSize.y), ImGuiCond_Always);
+        ImGui::Begin("Log");
+        GUI_Manager.RenderGUI();
 		// Text that appears in the window
-		ImGui::Text("Hello there adventurer!");
-        if (ImGui::Button("Click Me")) {
-            sign = !sign;
-        }
-		ImGui::End();
+		//ImGui::Text("Hello there adventurer!");
+        
+		//ImGui::End();
 
-
+        GUI_Manager.End();
         // Renders the ImGUI elements
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		//ImGui::Render();
+		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------

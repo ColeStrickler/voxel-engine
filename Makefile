@@ -10,6 +10,9 @@ INCLUDES=\
 -I./include/ \
 -I./include/imgui/ \
 -I./include/KHR/ \
+-I./include/opengl/ \
+-I./include/game/ \
+-I./include/dev/ \
 
 test:
 	echo $(OBJS)

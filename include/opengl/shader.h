@@ -58,9 +58,7 @@ public:
     void Bind() const;
     bool Compile();
     void Delete() const;
-    std::string FetchLog() const;
     ShaderError CheckError() const;
-    void DumpLog();
     bool SetUniform1f(const std::string& name, float data);
     bool SetUniform1i(const std::string& name, int data);
     bool SetUniformBool(const std::string& name, bool data);
@@ -73,7 +71,6 @@ private:
     std::unordered_map<std::string, int> m_UniformCache;
     unsigned int m_ProgramId;
     ShaderError m_error;
-    std::string m_log;
     std::vector<Shader*> m_shaders;
 };
 
