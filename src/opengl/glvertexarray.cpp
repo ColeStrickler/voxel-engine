@@ -7,6 +7,11 @@ VertexArray::VertexArray()
 
 VertexArray::~VertexArray()
 {
+   // 
+}
+
+void VertexArray::Delete()
+{
     glDeleteVertexArrays(1, &m_ArrayId);
 }
 

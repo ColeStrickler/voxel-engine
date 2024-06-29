@@ -127,6 +127,7 @@ public:
     VertexBuffer(uint32_t size);
     VertexBuffer(float* data, uint32_t size);
     ~VertexBuffer();
+    void Delete();
     void Bind() const;
     void Unbind() const;
     void SetData(const void* data, uint32_t size);
@@ -144,6 +145,7 @@ public:
     IndexBuffer() = default;
     IndexBuffer(uint32_t* indices, uint32_t count);
     ~IndexBuffer();
+    void Delete();
     void Bind() const;
     void Unbind() const;
 private:

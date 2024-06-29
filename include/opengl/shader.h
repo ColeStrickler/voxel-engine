@@ -24,13 +24,36 @@ enum ShaderError
     UNIFORM_SET_ERROR
 };
 
+static std::string ShaderTypeToString(GLenum shader_type)
+{
+    switch(shader_type)
+    {
+        case GL_VERTEX_SHADER: return "VERTEX";
+        case GL_FRAGMENT_SHADER: return "FRAGMENT";
+        default:
+            return "";
+    }
+}
 
+
+enum LightingModel
+{
+    /*
+        For the phong lighting model we must set the following Uniforms:
+        Light Sources --> vec3 lightColor, MVP matrices
+        Other Objects --> vec3 objectColor, vec3 lightColor, vec3 lightPos, vec3 viewPos, MVP matrices
+    */
+    Phong,
+
+
+
+};
 
 
 class Shader
 {
 public:
-    Shader(const std::string& shaderfile, GLenum shader_type);
+    Shader(const std::string& shaderfile, GLenum shader_type, LightingModel model);
     ~Shader();
     void Attach(unsigned int program) const;
     std::string FetchLog() const;
@@ -38,6 +61,7 @@ public:
     void DumpLog();
     void Delete() const;
     GLenum GetType() const {return m_ShaderType;}
+    LightingModel GetLightingModel() const {return m_LightingModel;}
 private:
     std::string FileToString(const std::string& FilePath);
     GLenum m_ShaderType;
@@ -45,6 +69,7 @@ private:
     std::string m_shaderContent;
     ShaderError m_error;
     std::string m_log;
+    LightingModel m_LightingModel;
     
 };
 
@@ -63,6 +88,7 @@ public:
     bool SetUniform1i(const std::string& name, int data);
     bool SetUniformBool(const std::string& name, bool data);
     bool SetUniformMat4(const std::string& name, glm::mat4 data);
+    bool SetUniformVec3(const std::string& name, glm::vec3 data);
 private:
     int GetUniformLocation(const std::string& UniformName);
    

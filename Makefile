@@ -13,6 +13,7 @@ INCLUDES=\
 -I./include/opengl/ \
 -I./include/game/ \
 -I./include/dev/ \
+-I./include/renderer/ \
 
 test:
 	echo $(OBJS)

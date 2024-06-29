@@ -2,7 +2,8 @@
 
 
 extern GLManager gl;
-
+extern Renderer renderer;
+extern GUI GUI_Manager;
 /*
     Declarations for GLManager static class variables
 */
@@ -22,6 +23,7 @@ GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(st
     GLAD_Init();
     m_glVersion = std::string((char*)glGetString(GL_VERSION));
     glfwSetKeyCallback(window, HandleAllKeyCallbacks);
+    glfwSetMouseButtonCallback(window, MouseClickCallback);
     /*
         Register camera movements
 
@@ -160,6 +162,34 @@ void GLManager::HandleAllKeyCallbacks(GLFWwindow *window, int key, int scancode,
     gl.m_KeyPressed[key] = ((action == GLFW_PRESS || action == GLFW_REPEAT) ? true : false);
 }
 
+void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, int mods)
+{
+    if (action != GLFW_PRESS)  // Check if the mouse button was pressed
+        return;
+
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);  // Get cursor position
+
+    int window_width, window_height;
+    glfwGetFramebufferSize(window, &window_width, &window_height);  // Get framebuffer size
+
+    GLubyte color[4];
+    GLfloat depth;
+    GLuint index;
+
+    // Read pixel data from the framebuffer
+    glReadPixels((int)xpos, window_height - (int)ypos - 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
+    glReadPixels((int)xpos, window_height - (int)ypos - 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+    glReadPixels((int)xpos, window_height - (int)ypos - 1, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+
+    glm::vec4 viewport = glm::vec4(0, 0, window_width, window_height);
+    glm::vec3 wincoord = glm::vec3(xpos, window_height - ypos - 1, depth);
+    glm::vec3 objcoord = glm::unProject(wincoord, gl.m_Camera.GetViewMatrix(),  gl.m_Camera.GetProjectionMatrix(), viewport);
+
+    RenderObject* selectedObject = renderer.FindClosestObject(objcoord);
+    GUI_Manager.HandleObjectSelection(selectedObject);
+}
+
 Camera::Camera(float screen_height, float screen_width, float speed, GLManager* manager) :  m_Manager(manager)
 {
     ChangeScreenDimensions(screen_width, screen_height);
@@ -235,9 +265,20 @@ void Camera::ChangeMoveSpeed(float speed)
     m_View = glm::lookAt(m_CameraPos, m_CameraPos+m_CameraFront, m_CameraUp);
 }
 
-void Camera::GetViewMatrix()
+glm::vec3 Camera::GetPosition() const
+{
+    return m_CameraPos;
+}
+
+glm::mat4 Camera::GetViewMatrix()
 {
     m_View = glm::lookAt(m_CameraPos, m_CameraPos+m_CameraFront, m_CameraUp);
+    return m_View;
+}
+
+glm::mat4 Camera::GetProjectionMatrix()
+{
+    return m_Projection;
 }
 
 void Camera::CameraHandleMouseMovement(float xoffset, float yoffset)

@@ -7,6 +7,8 @@ Logger::Logger() : m_LogFileName(LOGFILE), m_LogLevel(LOGLEVEL::LEVEL_ERROR)
 {
     TryDeleteFile(m_LogFileName);
     m_LogFile = std::ofstream(m_LogFileName, std::ofstream::app);
+    if (!m_LogFile.is_open())
+        Log(LOGTYPE::WARNING, "Logger::Logger() --> failed to open log file.\n");
 }
 
 Logger::~Logger()

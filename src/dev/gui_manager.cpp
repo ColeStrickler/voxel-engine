@@ -6,7 +6,7 @@ LogTarget GUI::m_LogTarget;
 bool GUI::m_bRunLogThread;
 std::thread GUI::m_LogThread;
 
-GUI::GUI()
+GUI::GUI() : m_CurrentObject(nullptr)
 {
     m_LogThread = std::thread(LoggingThread);
 }
@@ -26,6 +26,7 @@ GUI::~GUI()
 
 void GUI::RenderGUI()
 {
+    DisplayObjectOptions();
     DisplayLogs();
 }
 
@@ -42,6 +43,11 @@ void GUI::End()
     // Renders the ImGUI elements
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void GUI::HandleObjectSelection(RenderObject *obj)
+{
+    m_CurrentObject = obj;
 }
 
 void GUI::RegisterLogTarget(Logger *logger)
@@ -79,4 +85,35 @@ void GUI::DisplayLogs()
     {
         ImGui::Text("%s", log.c_str());
     }
+}
+
+void GUI::DisplayObjectOptions()
+{
+    if (!m_CurrentObject)
+        return;
+
+
+    /*
+        Change this to the objects name
+    */
+
+    bool open = true;
+    ImGui::OpenPopup("My Popup");
+
+
+    if (ImGui::BeginPopupModal("My Popup", &open, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Object Editor!");
+        ImGui::Separator();
+
+        if (ImGui::Button("Wireframe"))
+            m_CurrentObject->ToggleWireFrame();
+
+        if (ImGui::Button("Close")) {
+            ImGui::CloseCurrentPopup();
+            m_CurrentObject = nullptr;
+        }
+
+        ImGui::EndPopup();
+    }
+
 }

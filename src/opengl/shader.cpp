@@ -6,7 +6,7 @@
 extern Logger logger;
 
 
-Shader::Shader(const std::string &shaderfile, GLenum shader_type)
+Shader::Shader(const std::string &shaderfile, GLenum shader_type, LightingModel model) : m_LightingModel(model)
 {
     m_error = ShaderError::NO_ERROR_OK;
     m_shaderContent = FileToString(shaderfile);
@@ -30,7 +30,7 @@ Shader::Shader(const std::string &shaderfile, GLenum shader_type)
     {
         m_error = ShaderError::COMPILE_ERROR;
         glGetShaderInfoLog(m_shaderID, 512, NULL, infoLog);
-        m_log = "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" + std::string(infoLog) + "\n";
+        m_log = "ERROR::SHADER::" + ShaderTypeToString(shader_type) + "::COMPILATION_FAILED\n" + std::string(infoLog) + "\n";
     }
 }
 
@@ -101,7 +101,7 @@ bool ShaderProgram::SetUniform1f(const std::string& name, float data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniform1f() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location " + name);
         return false;
     }
     glUniform1f(location, data);
@@ -114,7 +114,7 @@ bool ShaderProgram::SetUniform1i(const std::string& name, int data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniform1i() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniform1i() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location " + name);
         return false;
     }
     glUniform1i(location, data);
@@ -128,7 +128,7 @@ bool ShaderProgram::SetUniformBool(const std::string& name, bool data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformBool() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformBool() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location " + name);
         return false;
     }
     glUniform1i(location, data);
@@ -141,16 +141,25 @@ bool ShaderProgram::SetUniformMat4(const std::string& name, glm::mat4 data)
     if (location == -1)
     {
         m_error = ShaderError::UNIFORM_SET_ERROR;
-        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformMat4() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location");
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformMat4() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location " + name);
         return false;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
     return true;
 }
 
-
-
-
+bool ShaderProgram::SetUniformVec3(const std::string &name, glm::vec3 data)
+{
+    auto location = GetUniformLocation(name);
+    if (location == -1)
+    {
+        m_error = ShaderError::UNIFORM_SET_ERROR;
+        logger.Log(LOGTYPE::WARNING, "ShaderProgram::SetUniformVec3() --> ShaderError::UNIFORM_SET_ERROR unable to get uniform location " + name);
+        return false;
+    }
+    glUniform3fv(location, 1, &data[0]);
+    return true;
+}
 
 ShaderProgram::ShaderProgram()
 {
@@ -179,7 +188,7 @@ void ShaderProgram::AddShader(Shader *shader)
 
 void ShaderProgram::Bind() const
 {
-     glUseProgram(m_ProgramId);
+    glUseProgram(m_ProgramId);
 }
 
 /*

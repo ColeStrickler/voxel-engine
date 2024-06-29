@@ -17,6 +17,11 @@ VertexBuffer::VertexBuffer(float *data, uint32_t size)
 
 VertexBuffer::~VertexBuffer()
 {
+    //glDeleteBuffers(1, &m_BufferId);
+}
+
+void VertexBuffer::Delete()
+{
     glDeleteBuffers(1, &m_BufferId);
 }
 
@@ -48,6 +53,11 @@ IndexBuffer::IndexBuffer(uint32_t *indices, uint32_t count) : m_Count(count)
 }
 
 IndexBuffer::~IndexBuffer()
+{
+  //  glDeleteBuffers(1, &m_BufferId);
+}
+
+void IndexBuffer::Delete()
 {
     glDeleteBuffers(1, &m_BufferId);
 }

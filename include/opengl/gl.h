@@ -12,6 +12,8 @@
 #include <string>
 #include <iostream>
 #include <functional> // for std::bind
+#include "renderer.h"
+#include "gui_manager.h"
 #define DEFAULT_WINDOW_WIDTH 1200U
 #define DEFAULT_WINDOW_HEIGHT 900U  
 #define DEFUALT_MOVE_SPEED 10.0f
@@ -31,8 +33,9 @@ public:
     std::string FetchLog();
     void DumpLog();
     void ChangeMoveSpeed(float speed);
-
-    void GetViewMatrix();
+    glm::vec3 GetPosition() const;
+    glm::mat4 GetViewMatrix();
+    glm::mat4 GetProjectionMatrix();
     void CameraHandleMouseMovement(float xoffset, float yoffset);
     void CameraHandleKey_W();
     void CameraHandleKey_A();
@@ -90,6 +93,7 @@ private:
     void GLAD_Init();
     static void MouseScrollCallback(GLFWwindow* window, double xposIn, double yposIn);
     static void HandleAllKeyCallbacks(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void MouseClickCallback(GLFWwindow* window, int button, int action, int mods);
     std::unordered_map<int, bool> m_KeyPressed;
 
 
