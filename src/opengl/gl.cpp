@@ -1,29 +1,28 @@
 #include "gl.h"
 
-
 extern GLManager gl;
 extern Renderer renderer;
 extern GUI GUI_Manager;
 /*
     Declarations for GLManager static class variables
 */
-GLFWwindow* GLManager::window = nullptr;
-int GLManager::window_width = DEFAULT_WINDOW_WIDTH; 
+GLFWwindow *GLManager::window = nullptr;
+int GLManager::window_width = DEFAULT_WINDOW_WIDTH;
 int GLManager::window_height = DEFAULT_WINDOW_HEIGHT;
 bool GLManager::m_FirstMouse = true;
 float GLManager::m_LastX = 0.0f;
 float GLManager::m_LastY = 0.0f;
 std::unordered_map<int, std::function<void()>> GLManager::m_KeyCallbacks;
 
-
-
 GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(static_cast<float>(window_height), static_cast<float>(window_width), DEFUALT_MOVE_SPEED, this))
 {
     GLFW_Init();
     GLAD_Init();
-    m_glVersion = std::string((char*)glGetString(GL_VERSION));
+    m_glVersion = std::string((char *)glGetString(GL_VERSION));
     glfwSetKeyCallback(window, HandleAllKeyCallbacks);
     glfwSetMouseButtonCallback(window, MouseClickCallback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); 
+    m_bCursorHidden = true;
     /*
         Register camera movements
 
@@ -35,9 +34,9 @@ GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(st
     RegisterKeyCallback(GLFW_KEY_A, std::bind(&Camera::CameraHandleKey_A, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_S, std::bind(&Camera::CameraHandleKey_S, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_D, std::bind(&Camera::CameraHandleKey_D, &m_Camera));
+    RegisterKeyCallback(GLFW_KEY_ESCAPE, std::bind(&GLManager::HandleToggleCursorHidden, this));
+    RegisterKeyCallback(GLFW_KEY_F1, std::bind(&GLManager::HandleToggleCursorVisible, this));
     glfwSetCursorPosCallback(window, MouseScrollCallback);
-    
-
 }
 
 GLManager::~GLManager()
@@ -53,7 +52,7 @@ void GLManager::SetWindowSize(GLFWwindow *window, int width, int height)
     gl.m_Camera.ChangeScreenDimensions(static_cast<float>(GLManager::window_height), static_cast<float>(GLManager::window_width));
 }
 
-GLFWwindow* GLManager::GetWindow()
+GLFWwindow *GLManager::GetWindow()
 {
     return GLManager::window;
 }
@@ -62,14 +61,15 @@ void GLManager::SetDepthTesting(bool enable)
 {
     // if depth testing is set, OpenGL will discard any pixels that are behind anoth in the fragment shader
     if (enable)
-        glEnable(GL_DEPTH_TEST); 
+        glEnable(GL_DEPTH_TEST);
     else
         glDisable(GL_DEPTH_TEST);
 }
 
 bool GLManager::UpdateCameraMVP(ShaderProgram *prog)
 {
-    return m_Camera.SetMVP(prog);; 
+    return m_Camera.SetMVP(prog);
+    
 }
 
 void GLManager::RegisterKeyCallback(int key, std::function<void()> callback)
@@ -81,7 +81,7 @@ void GLManager::RegisterKeyCallback(int key, std::function<void()> callback)
 void GLManager::PerFrame()
 {
     glfwPollEvents();
-    for (auto& e: m_KeyPressed)
+    for (auto &e : m_KeyPressed)
     {
         auto cb = m_KeyCallbacks[e.first];
         if (e.second && cb)
@@ -90,13 +90,11 @@ void GLManager::PerFrame()
         }
     }
 
-
     CalcDeltaTime();
     m_Camera.UpdateCameraVectors();
     m_Camera.GetViewMatrix();
 
-
-    glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
+    glClearColor(0.1f, 0.1f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -158,20 +156,20 @@ void GLManager::MouseScrollCallback(GLFWwindow *window, double xposIn, double yp
 }
 
 void GLManager::HandleAllKeyCallbacks(GLFWwindow *window, int key, int scancode, int action, int mods)
-{    
+{
     gl.m_KeyPressed[key] = ((action == GLFW_PRESS || action == GLFW_REPEAT) ? true : false);
 }
 
 void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, int mods)
 {
-    if (action != GLFW_PRESS)  // Check if the mouse button was pressed
+    if (action != GLFW_PRESS) // Check if the mouse button was pressed
         return;
 
     double xpos, ypos;
-    glfwGetCursorPos(window, &xpos, &ypos);  // Get cursor position
+    glfwGetCursorPos(window, &xpos, &ypos); // Get cursor position
 
     int window_width, window_height;
-    glfwGetFramebufferSize(window, &window_width, &window_height);  // Get framebuffer size
+    glfwGetFramebufferSize(window, &window_width, &window_height); // Get framebuffer size
 
     GLubyte color[4];
     GLfloat depth;
@@ -184,20 +182,31 @@ void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, i
 
     glm::vec4 viewport = glm::vec4(0, 0, window_width, window_height);
     glm::vec3 wincoord = glm::vec3(xpos, window_height - ypos - 1, depth);
-    glm::vec3 objcoord = glm::unProject(wincoord, gl.m_Camera.GetViewMatrix(),  gl.m_Camera.GetProjectionMatrix(), viewport);
+    glm::vec3 objcoord = glm::unProject(wincoord, gl.m_Camera.GetViewMatrix(), gl.m_Camera.GetProjectionMatrix(), viewport);
 
-    RenderObject* selectedObject = renderer.FindClosestObject(objcoord);
-    GUI_Manager.HandleObjectSelection(selectedObject);
+    RenderObject *selectedObject = renderer.FindClosestObject(objcoord);
+    if (selectedObject)
+        GUI_Manager.HandleObjectSelection(selectedObject);
 }
 
-Camera::Camera(float screen_height, float screen_width, float speed, GLManager* manager) :  m_Manager(manager)
+void GLManager::HandleToggleCursorHidden()
+{
+   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); 
+}
+
+void GLManager::HandleToggleCursorVisible()
+{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
+}
+
+Camera::Camera(float screen_height, float screen_width, float speed, GLManager *manager) : m_Manager(manager)
 {
     ChangeScreenDimensions(screen_width, screen_height);
     ChangeMoveSpeed(speed);
     m_CameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
     m_CameraFront = glm::vec3(0.0f, 0.0f, -1.0f) + m_CameraPos;
-    m_CameraRight = glm::normalize(glm::cross(m_CameraUp, m_CameraFront));
     m_CameraUp = glm::cross(m_CameraFront, m_CameraRight);
+    m_CameraRight = glm::normalize(glm::cross(m_CameraUp, m_CameraFront));
     m_WorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
     m_MouseSensitivity = DEFAULT_MOUSE_SENSITIVITY;
     m_Pitch = 0.0f;
@@ -206,9 +215,6 @@ Camera::Camera(float screen_height, float screen_width, float speed, GLManager* 
     UpdateCameraVectors();
     GetViewMatrix();
 }
-
-
-
 
 Camera::~Camera()
 {
@@ -220,7 +226,7 @@ void Camera::ChangeScreenDimensions(float width, float height)
     m_ScreenHeight = height;
     m_ScreenWidth = width;
     printf("width %f, height %f\n", width, height);
-    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth/m_ScreenHeight, 0.1f, 100.0f);
+    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 100.0f);
 }
 
 bool Camera::SetMVP(ShaderProgram *prog)
@@ -228,19 +234,19 @@ bool Camera::SetMVP(ShaderProgram *prog)
     /*
         Model matrix will be set by the objects themselves
     */
-    //if (!prog->SetUniformMat4("model", m_Model))
+    // if (!prog->SetUniformMat4("model", m_Model))
     //{
-    //    m_Log += "Camera::SetMVP() --> failed to set model matrix.\n";
-    //    return false;
-    //}
-    
-    if(!prog->SetUniformMat4("view", m_View))
+    //     m_Log += "Camera::SetMVP() --> failed to set model matrix.\n";
+    //     return false;
+    // }
+
+    if (!prog->SetUniformMat4("view", m_View))
     {
         m_Log += "Camera::SetMVP() --> failed to set view matrix.\n";
         std::cout << m_Log;
         return false;
     }
-    if(!prog->SetUniformMat4("projection", m_Projection))
+    if (!prog->SetUniformMat4("projection", m_Projection))
     {
         m_Log += "Camera::SetMVP() --> failed to set projection matrix.\n";
         return false;
@@ -262,7 +268,7 @@ void Camera::DumpLog()
 void Camera::ChangeMoveSpeed(float speed)
 {
     m_MoveSpeed = speed;
-    m_View = glm::lookAt(m_CameraPos, m_CameraPos+m_CameraFront, m_CameraUp);
+    // m_View = glm::lookAt(m_CameraPos, m_CameraPos+m_CameraFront, m_CameraUp);
 }
 
 glm::vec3 Camera::GetPosition() const
@@ -272,7 +278,7 @@ glm::vec3 Camera::GetPosition() const
 
 glm::mat4 Camera::GetViewMatrix()
 {
-    m_View = glm::lookAt(m_CameraPos, m_CameraPos+m_CameraFront, m_CameraUp);
+    m_View = glm::lookAt(m_CameraPos, m_CameraPos + m_CameraFront, m_CameraUp);
     return m_View;
 }
 
@@ -286,15 +292,15 @@ void Camera::CameraHandleMouseMovement(float xoffset, float yoffset)
     xoffset *= m_MouseSensitivity;
     yoffset *= m_MouseSensitivity;
 
-    m_Yaw   += xoffset;
+    m_Yaw += xoffset;
     m_Pitch += yoffset;
-
 
     if (m_Pitch > 89.0f)
         m_Pitch = 89.0f;
     if (m_Pitch < -89.0f)
         m_Pitch = -89.0f;
-    
+    UpdateCameraVectors();
+    //GetViewMatrix();
 }
 
 void Camera::CameraHandleKey_W()
@@ -302,9 +308,9 @@ void Camera::CameraHandleKey_W()
     float delta_time = m_Manager->GetDeltaTime();
     float speed = delta_time * m_MoveSpeed;
     m_CameraPos += (speed * m_CameraFront);
-    //UpdateCameraVectors();
-    //GetViewMatrix();
-    //printf("%f, %f, %f\n", m_CameraPos[0],  m_CameraPos[1],  m_CameraPos[2]);
+    // UpdateCameraVectors();
+    // GetViewMatrix();
+    // printf("%f, %f, %f\n", m_CameraPos[0],  m_CameraPos[1],  m_CameraPos[2]);
 }
 
 void Camera::CameraHandleKey_A()
@@ -312,8 +318,8 @@ void Camera::CameraHandleKey_A()
     float delta_time = m_Manager->GetDeltaTime();
     float speed = delta_time * m_MoveSpeed;
     m_CameraPos -= (m_CameraRight * speed);
-    //UpdateCameraVectors();
-    //GetViewMatrix();
+    // UpdateCameraVectors();
+    // GetViewMatrix();
 }
 
 void Camera::CameraHandleKey_S()
@@ -321,8 +327,8 @@ void Camera::CameraHandleKey_S()
     float delta_time = m_Manager->GetDeltaTime();
     float speed = delta_time * m_MoveSpeed;
     m_CameraPos -= (speed * m_CameraFront);
-   // UpdateCameraVectors();
-   // GetViewMatrix();
+    // UpdateCameraVectors();
+    // GetViewMatrix();
 }
 
 void Camera::CameraHandleKey_D()
@@ -336,8 +342,8 @@ void Camera::CameraHandleKey_D()
         We add to move to the right
     */
     m_CameraPos += (speed * m_CameraRight);
-    //UpdateCameraVectors();
-    //GetViewMatrix();
+    // UpdateCameraVectors();
+    // GetViewMatrix();
 }
 
 void Camera::UpdateCameraVectors()
@@ -348,6 +354,6 @@ void Camera::UpdateCameraVectors()
     front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
     m_CameraFront = glm::normalize(front);
     // also re-calculate the Right and Up vector
-    m_CameraRight = glm::normalize(glm::cross(m_CameraFront, m_WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-    m_CameraUp    = glm::normalize(glm::cross(m_CameraRight, m_CameraFront));
+    m_CameraRight = glm::normalize(glm::cross(m_CameraFront, m_WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+    m_CameraUp = glm::normalize(glm::cross(m_CameraRight, m_CameraFront));
 }

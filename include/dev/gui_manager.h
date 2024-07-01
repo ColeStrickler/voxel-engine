@@ -34,6 +34,7 @@ private:
     /* object selection functionality */
     RenderObject* m_CurrentObject;
     void DisplayObjectOptions();
+    void HandleObjectPositionOptions();
 };
 
 

@@ -80,6 +80,7 @@ static GLenum ShaderDataTypeToGLEnum(ShaderDataType type)
 		case ShaderDataType::Int4:     return GL_INT;
 		case ShaderDataType::Bool:     return GL_BOOL;
 	}
+    printf("type %d", type);
     assert(false);
 	return 0;
 }
@@ -108,13 +109,13 @@ class BufferLayout
 {
 public:
     BufferLayout() = default;
-    BufferLayout(std::initializer_list<BufferElement> elements);
+    BufferLayout(std::initializer_list<BufferElement*> elements);
     ~BufferLayout();
-    const std::vector<BufferElement>& GetElements() const {return m_Elements;}
+    const std::vector<BufferElement*>& GetElements() const {return m_Elements;}
     unsigned int GetStride() const {return m_Stride;}
 private:
     void InitLayout();
-    std::vector<BufferElement> m_Elements;
+    std::vector<BufferElement*> m_Elements;
     unsigned int m_Stride;
 };
 
@@ -131,11 +132,11 @@ public:
     void Bind() const;
     void Unbind() const;
     void SetData(const void* data, uint32_t size);
-    void SetLayout(const BufferLayout& layout) {m_Layout = layout;};
-    const BufferLayout& GetLayout() const {return m_Layout;}
+    void SetLayout(BufferLayout* layout) {m_Layout = layout;};
+    const BufferLayout& GetLayout() const {return *m_Layout;}
 private:
     unsigned int m_BufferId;
-    BufferLayout m_Layout;
+    BufferLayout* m_Layout;
 };
 
 

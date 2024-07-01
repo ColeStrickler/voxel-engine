@@ -17,15 +17,15 @@ public:
     void Delete();
     void Bind();
     void Unbind();
-    void AddIndexBuffer(const IndexBuffer& index_buffer);
-    void AddVertexBuffer(const VertexBuffer& vertex_buffer);
+    void AddIndexBuffer(IndexBuffer* index_buffer);
+    void AddVertexBuffer(VertexBuffer* vertex_buffer);
     void SetCount(unsigned int count) {m_Count = count;}
     unsigned int GetCount() const {return m_Count;}
 private:
     unsigned int m_ArrayId;
     //std::vector<VertexBuffer> m_VertexBuffers; --> will want to be able to pass multiple at some point
-    VertexBuffer m_VertexBuffer;
-    IndexBuffer m_IndexBuffer;
+    VertexBuffer* m_VertexBuffer;
+    IndexBuffer* m_IndexBuffer;
     unsigned int m_Count;
 };
 

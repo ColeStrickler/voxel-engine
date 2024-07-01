@@ -82,7 +82,7 @@ BufferElement::~BufferElement()
 {
 }
 
-BufferLayout::BufferLayout(std::initializer_list<BufferElement> elements) :
+BufferLayout::BufferLayout(std::initializer_list<BufferElement*> elements) :
     m_Elements(elements)
 {
     InitLayout();    
@@ -98,8 +98,8 @@ void BufferLayout::InitLayout()
     m_Stride = 0;
     for (auto& element : m_Elements)
     {
-        element.m_Offset = offset;
-        offset += element.m_Size;
-        m_Stride += element.m_Size;
+        element->m_Offset = offset;
+        offset += element->m_Size;
+        m_Stride += element->m_Size;
     }
 }

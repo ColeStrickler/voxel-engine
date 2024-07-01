@@ -1,40 +1,55 @@
 #include "renderobject.h"
-
-RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp, IndexBuffer* ib) : m_VertexArray(va), m_VertexBuffer(vb), \
-    m_ShaderProgram(sp), m_IndexBuffer(ib), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false)
+#include "renderer.h"
+#include "logger.h"
+extern Renderer renderer;
+extern GLManager gl;
+extern Logger logger;
+RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type) : m_VertexArray(va), m_VertexBuffer(vb), \
+    m_ShaderProgram(sp), m_IndexBuffer(ib), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type)
 {
-    m_bUseIndexBuffer = true;
-    printf("RenderObject::RenderObject()\n");
+    if (ib != nullptr)
+        m_bUseIndexBuffer = true;
+    
 }
 
-RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp) : m_VertexArray(va), m_VertexBuffer(vb), m_ShaderProgram(sp), \
-    m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false)
+RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type ) : m_VertexArray(va), m_VertexBuffer(vb), m_ShaderProgram(sp), \
+    m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type)
 {
     m_bUseIndexBuffer = false;
-     printf("RenderObject::RenderObject()\n");
+    m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 RenderObject::~RenderObject()
 {
+
 }
 
 void RenderObject::Render()
 {
-    //printf("RenderObject::render()! %x\n", m_ShaderProgram);
+
     m_ShaderProgram->Bind();
     m_VertexArray->Bind();
-    //printf("Bound!\n");
+
+
+    // this could be placed much better for optimization
 
     /*
         We will eventually want to have various shading models that we will switch off off here based on the object type
 
         For now we content ourselves with throwing in the model matrix
     */
-
-    m_ShaderProgram->SetUniformMat4("model", m_Model);
+    SetShaders();
+    
 
     DrawCall();
 }
+
+RenderObject* RenderObject::Duplicate()
+{
+    RenderObject* new_obj = new RenderObject(*this);
+    new_obj->SetPosition(GetPosition());
+    return new_obj;
+}   
 
 void RenderObject::SetPosition(const glm::vec3 &position)
 {
@@ -78,6 +93,61 @@ void RenderObject::DrawCall() const
         else
         {
             glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+    }
+}
+
+void RenderObject::SetShaders()
+{
+    /* We put shaders common to all objects here */
+    m_ShaderProgram->SetUniformMat4("model", m_Model);
+    if(!gl.UpdateCameraMVP(m_ShaderProgram))
+        logger.Log(LOGTYPE::ERROR, "RenderObject::SetShaders() --> UpdateCameraMVP() failed\n");
+
+    switch(m_ShaderProgram->GetLightingModel())
+    {
+        case LightingModel::Phong: HandlePhongShaders(); break;
+        default: break;
+    }
+    return;
+}
+
+void RenderObject::HandlePhongShaders()
+{
+    switch(m_ObjectType)
+    {
+        case OBJECTYPE::LightSource:
+        {
+            printf("set light color %.2f, %.2f, %.2f\n", m_Light.color.x, m_Light.color.y, m_Light.color.z);
+            m_ShaderProgram->SetUniformVec3("lightColor", m_Light.color);
+            break;
+        }
+        case OBJECTYPE::Regular:
+        {
+            // this is patchwork for now
+            // need to clean this up
+            auto camer_pos = gl.GetCamera()->GetPosition();
+            m_ShaderProgram->SetUniformVec3("viewPos", camer_pos);
+
+
+            auto light_obj = renderer.GetLighting();
+            if (light_obj)
+            {
+                auto& light = light_obj->m_Light;
+                //m_ShaderProgram->SetUniformVec3("light.color", light_obj->m_LightColor);
+                m_ShaderProgram->SetUniformVec3("light.position", light.position);
+                m_ShaderProgram->SetUniformVec3("light.diffuse", light.diffuse);
+                m_ShaderProgram->SetUniformVec3("light.specular", light.specular);
+                m_ShaderProgram->SetUniformVec3("light.ambient", light.ambient);
+            }
+            
+
+            m_ShaderProgram->SetUniformVec3("material.ambient", m_Material.ambient);
+            m_ShaderProgram->SetUniformVec3("material.diffuse", m_Material.diffuse);
+            m_ShaderProgram->SetUniformVec3("material.specular", m_Material.specular);
+            m_ShaderProgram->SetUniform1f("material.shininess", m_Material.shininess);
+            m_ShaderProgram->SetUniformVec3("material.color", m_Material.color);
+            break;
         }
     }
 }

@@ -6,7 +6,7 @@
 extern Logger logger;
 
 
-Shader::Shader(const std::string &shaderfile, GLenum shader_type, LightingModel model) : m_LightingModel(model)
+Shader::Shader(const std::string &shaderfile, GLenum shader_type) 
 {
     m_error = ShaderError::NO_ERROR_OK;
     m_shaderContent = FileToString(shaderfile);
@@ -161,7 +161,7 @@ bool ShaderProgram::SetUniformVec3(const std::string &name, glm::vec3 data)
     return true;
 }
 
-ShaderProgram::ShaderProgram()
+ShaderProgram::ShaderProgram(LightingModel model) : m_LightingModel(model)
 {
     m_ProgramId = glCreateProgram();
     // allocate spot for GL_COMPUTE_SHADER, GL_VERTEX_SHADER, GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER, GL_GEOMETRY_SHADER, or GL_FRAGMENT_SHADER

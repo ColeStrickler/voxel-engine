@@ -17,7 +17,7 @@
 #include "gui_manager.h"
 #include "vertices.h"
 #include "renderer.h"
-
+#include <random>
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
 extern GUI GUI_Manager;
@@ -35,6 +35,18 @@ std::string getcwd()
     return currentPath.string();
 }
 
+
+float Random() {
+    // Create a random number generator
+    std::random_device rd;   // obtain a random number from hardware
+    std::mt19937 gen(rd());  // seed the generator
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);  // define the range
+
+    // Generate a random float between 0 and 1
+    return dis(gen);
+}
+
+
 int main()
 {
 
@@ -44,25 +56,25 @@ int main()
     logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
     logger.Log(LOGTYPE::INFO, "test");
 
-    Shader vertex_shader(getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER, LightingModel::Phong);
+    Shader vertex_shader(getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
     if (vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
         std::cout << vertex_shader.FetchLog();
 
-    Shader fragment_shader(getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER, LightingModel::Phong);
+    Shader fragment_shader(getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
     if (fragment_shader.CheckError() != ShaderError::NO_ERROR_OK)
         std::cout << fragment_shader.FetchLog();
 
-    Shader lighting_fragment(getcwd() + "/src/shaders/ls_fragment.glsl", GL_FRAGMENT_SHADER, LightingModel::Phong);
+    Shader lighting_fragment(getcwd() + "/src/shaders/ls_fragment.glsl", GL_FRAGMENT_SHADER);
     if (lighting_fragment.CheckError() != ShaderError::NO_ERROR_OK)
         std::cout << lighting_fragment.FetchLog();
 
-    Shader lighting_vertex(getcwd() + "/src/shaders/ls_vertex.glsl", GL_VERTEX_SHADER, LightingModel::Phong);
+    Shader lighting_vertex(getcwd() + "/src/shaders/ls_vertex.glsl", GL_VERTEX_SHADER);
     if (lighting_vertex.CheckError() != ShaderError::NO_ERROR_OK)
         std::cout << lighting_vertex.FetchLog();
 
     // check for shader compile errors
-    ShaderProgram shaderProgram;
-    ShaderProgram lightSource;
+    ShaderProgram shaderProgram(LightingModel::Phong);
+    ShaderProgram lightSource(LightingModel::Phong);
     shaderProgram.AddShader(&vertex_shader);
     shaderProgram.AddShader(&fragment_shader);
 
@@ -80,28 +92,43 @@ int main()
         return -1;
     }
 
-    BufferLayout lighting_layout({BufferElement("COORDS", ShaderDataType::Float3, false),
-                                  BufferElement("NORMALS", ShaderDataType::Float3, false)});
-    VertexArray lva;
-    VertexBuffer lighting_vbo(light_vertices, sizeof(light_vertices));
-    lighting_vbo.SetLayout(lighting_layout);
-    lva.AddVertexBuffer(lighting_vbo);
+    BufferLayout* lighting_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
+                                  new BufferElement("NORMALS", ShaderDataType::Float3, false)});
+    VertexArray* lva = new VertexArray;
+    VertexBuffer* lighting_vbo = new VertexBuffer(light_vertices, sizeof(light_vertices));
+    lighting_vbo->SetLayout(lighting_layout);
+    lva->AddVertexBuffer(lighting_vbo);
 
-    // VertexBuffer
-    BufferLayout layout({BufferElement("COORDS", ShaderDataType::Float3, false),
-                         BufferElement("NORMALS", ShaderDataType::Float3, false)});
-    VertexArray va;
-    VertexBuffer vbo(light_vertices, sizeof(light_vertices));
-    vbo.SetLayout(layout);
-    // IndexBuffer ibo(indices, 6);
-    va.AddVertexBuffer(vbo);
-    va.SetCount(36);
+    RenderObject* l_obj = new RenderObject(lva, lighting_vbo, &lightSource, OBJECTYPE::LightSource);
+    l_obj->SetPosition({0.0f, 0.0f, 0.0f});
+    renderer.AddRenderObject(l_obj);
+    for (int i = 0; i < 1; i++)
+    {
+        // VertexBuffer
+        BufferLayout* layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
+                            new BufferElement("NORMALS", ShaderDataType::Float3, false)});
+        VertexArray *va = new VertexArray;
+        VertexBuffer* vbo = new VertexBuffer(light_vertices, sizeof(light_vertices));
+        vbo->SetLayout(layout);
+        // IndexBuffer ibo(indices, 6);
+        va->AddVertexBuffer(vbo);
+        va->SetCount(36);
+        RenderObject* r_obj = new RenderObject(va, vbo, &shaderProgram);
+        //r_obj->Translate({2.0f*Random(), 2.0f*Random(), 2.0f*Random()});
+         r_obj->SetPosition({0.0f, 0.0f, 0.0f});
+        renderer.AddRenderObject(r_obj);
+    }
+    
+    
+
+
+
     // va.AddIndexBuffer(ibo);
-    Texture tex(getcwd() + "/src/textures/container.jpg", "container");
+   //Texture tex(getcwd() + "/src/textures/container.jpg", "container");
 
-    RenderObject r_obj(&va, &vbo, &shaderProgram);
 
-    renderer.AddRenderObject(&r_obj);
+
+
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -135,9 +162,10 @@ int main()
     {
         // gl.CalcDeltaTime();
         gl.PerFrame();
+
         logger.WriteLogs();
         // model = glm::rotate(model, .1f, );
-        r_obj.Rotate(glm::vec3(0.5f, 1.0f, 0.0f), .1f);
+       // r_obj.Rotate(glm::vec3(0.5f, 1.0f, 0.0f), .1f);
         // float time = glfwGetTime();
 
         // auto new_model = glm::translate(model, glm::vec3(cos(time), 0, 0));
@@ -157,17 +185,14 @@ int main()
         // tex.SetTextureSlot(0);
         // tex.Bind();
 
-        shaderProgram.Bind();
-        shaderProgram.SetUniformVec3("lightColor", lightColor);
-        shaderProgram.SetUniformVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
-        shaderProgram.SetUniformVec3("lightPos", ls_pos);
-        shaderProgram.SetUniformVec3("viewPos", gl.GetCamera()->GetPosition());
+       // shaderProgram.Bind();
+       // shaderProgram.SetUniformVec3("lightColor", lightColor);
+       // shaderProgram.SetUniformVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+       // shaderProgram.SetUniformVec3("lightPos", ls_pos);
+       // shaderProgram.SetUniformVec3("viewPos", gl.GetCamera()->GetPosition());
         // shaderProgram.SetUniformMat4("model", model);
-        if (!gl.UpdateCameraMVP(&shaderProgram))
-        {
-            std::cout << gl.GetCamera()->FetchLog() << std::endl;
-            exit(-1);
-        }
+        
+
         // va.Bind();
         renderer.RenderAllObjects();
 
@@ -176,18 +201,18 @@ int main()
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         // glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        lightSource.Bind();
-        lightSource.SetUniformMat4("model", ls_model);
-        lightSource.SetUniformVec3("lightColor", lightColor);
+      //  lightSource.Bind();
+      //  lightSource.SetUniformMat4("model", ls_model);
+      //  lightSource.SetUniformVec3("lightColor", lightColor);
 
-        if (!gl.UpdateCameraMVP(&lightSource))
-        {
-            std::cout << gl.GetCamera()->FetchLog() << std::endl;
-            exit(-1);
-        }
-
-        lva.Bind();
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+       // if (!gl.UpdateCameraMVP(&lightSource))
+       // {
+       //     std::cout << gl.GetCamera()->FetchLog() << std::endl;
+       //     exit(-1);
+       // }
+//
+       // lva.Bind();
+       // glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // glBindVertexArray(0); // no need to unbind it every time
 

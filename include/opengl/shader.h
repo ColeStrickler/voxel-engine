@@ -53,7 +53,7 @@ enum LightingModel
 class Shader
 {
 public:
-    Shader(const std::string& shaderfile, GLenum shader_type, LightingModel model);
+    Shader(const std::string& shaderfile, GLenum shader_type);
     ~Shader();
     void Attach(unsigned int program) const;
     std::string FetchLog() const;
@@ -61,7 +61,7 @@ public:
     void DumpLog();
     void Delete() const;
     GLenum GetType() const {return m_ShaderType;}
-    LightingModel GetLightingModel() const {return m_LightingModel;}
+    
 private:
     std::string FileToString(const std::string& FilePath);
     GLenum m_ShaderType;
@@ -69,7 +69,6 @@ private:
     std::string m_shaderContent;
     ShaderError m_error;
     std::string m_log;
-    LightingModel m_LightingModel;
     
 };
 
@@ -77,7 +76,7 @@ private:
 class ShaderProgram
 {
 public:
-    ShaderProgram();
+    ShaderProgram(LightingModel model);
     ~ShaderProgram();
     void AddShader(Shader* shader);
     void Bind() const;
@@ -89,7 +88,9 @@ public:
     bool SetUniformBool(const std::string& name, bool data);
     bool SetUniformMat4(const std::string& name, glm::mat4 data);
     bool SetUniformVec3(const std::string& name, glm::vec3 data);
+    LightingModel GetLightingModel() const {return m_LightingModel;}
 private:
+    LightingModel m_LightingModel;
     int GetUniformLocation(const std::string& UniformName);
    
     int ShaderTypeIndex(Shader* shader);
