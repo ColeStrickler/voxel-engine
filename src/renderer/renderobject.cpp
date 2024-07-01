@@ -48,6 +48,7 @@ RenderObject* RenderObject::Duplicate()
 {
     RenderObject* new_obj = new RenderObject(*this);
     new_obj->SetPosition(GetPosition());
+    logger.Log(LOGTYPE::INFO, "RenderObject::Duplicate() --> duplicated object.");
     return new_obj;
 }   
 
@@ -104,7 +105,7 @@ void RenderObject::SetShaders()
     if(!gl.UpdateCameraMVP(m_ShaderProgram))
         logger.Log(LOGTYPE::ERROR, "RenderObject::SetShaders() --> UpdateCameraMVP() failed\n");
 
-    switch(m_ShaderProgram->GetLightingModel())
+    switch(renderer.GetLightingModel())
     {
         case LightingModel::Phong: HandlePhongShaders(); break;
         default: break;

@@ -76,7 +76,7 @@ private:
 class ShaderProgram
 {
 public:
-    ShaderProgram(LightingModel model);
+    ShaderProgram();
     ~ShaderProgram();
     void AddShader(Shader* shader);
     void Bind() const;
@@ -88,9 +88,8 @@ public:
     bool SetUniformBool(const std::string& name, bool data);
     bool SetUniformMat4(const std::string& name, glm::mat4 data);
     bool SetUniformVec3(const std::string& name, glm::vec3 data);
-    LightingModel GetLightingModel() const {return m_LightingModel;}
+    
 private:
-    LightingModel m_LightingModel;
     int GetUniformLocation(const std::string& UniformName);
    
     int ShaderTypeIndex(Shader* shader);

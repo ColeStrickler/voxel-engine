@@ -73,8 +73,8 @@ int main()
         std::cout << lighting_vertex.FetchLog();
 
     // check for shader compile errors
-    ShaderProgram shaderProgram(LightingModel::Phong);
-    ShaderProgram lightSource(LightingModel::Phong);
+    ShaderProgram shaderProgram;
+    ShaderProgram lightSource;
     shaderProgram.AddShader(&vertex_shader);
     shaderProgram.AddShader(&fragment_shader);
 
@@ -82,6 +82,8 @@ int main()
     lightSource.AddShader(&lighting_fragment);
     // glAttachShader(shaderProgram, vertexShader);
     // glAttachShader(shaderProgram, fragmentShader);
+    renderer.SetLightingModel(LightingModel::Phong);
+
     if (!shaderProgram.Compile())
     {
         return -1;

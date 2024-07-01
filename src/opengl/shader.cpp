@@ -161,7 +161,7 @@ bool ShaderProgram::SetUniformVec3(const std::string &name, glm::vec3 data)
     return true;
 }
 
-ShaderProgram::ShaderProgram(LightingModel model) : m_LightingModel(model)
+ShaderProgram::ShaderProgram() 
 {
     m_ProgramId = glCreateProgram();
     // allocate spot for GL_COMPUTE_SHADER, GL_VERTEX_SHADER, GL_TESS_CONTROL_SHADER, GL_TESS_EVALUATION_SHADER, GL_GEOMETRY_SHADER, or GL_FRAGMENT_SHADER

@@ -2,6 +2,7 @@
 #include "renderer.h"
 GUI GUI_Manager;
 extern Renderer renderer;
+extern Logger logger;
 LogTarget GUI::m_LogTarget;
 bool GUI::m_bRunLogThread;
 std::thread GUI::m_LogThread;
@@ -113,6 +114,7 @@ void GUI::DisplayObjectOptions()
         if (ImGui::Button("Duplicate"))
         {
             renderer.AddRenderObject(m_CurrentObject->Duplicate());
+            logger.Log(LOGTYPE::INFO, "Added new RenderObject to Renderer.");
         }
 
         switch(m_CurrentObject->GetType())
