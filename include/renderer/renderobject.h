@@ -3,7 +3,7 @@
 #include "glvertexarray.h"
 #include "glbuffer.h"
 #include "shader.h"
-
+#include "material.h"
 
 enum OBJECTYPE
 {
@@ -12,23 +12,6 @@ enum OBJECTYPE
 };
 
 
-typedef struct Material
-{
-    glm::vec3 color;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    float shininess;
-}Material;
-// will probably want a separate list for lights once we start to have more than 1
-typedef struct Light
-{
-    glm::vec3 position;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    glm::vec3 color;
-}Light;
 
 
 
@@ -53,7 +36,7 @@ public:
     glm::vec3 m_LightColor;
     Light m_Light;
     Material m_Material;
-
+    int m_MaterialId;
 
 
 

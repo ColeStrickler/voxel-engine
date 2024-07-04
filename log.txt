@@ -7,3 +7,5 @@
 [INFO]: Added new RenderObject to Renderer.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
 [INFO]: Added new RenderObject to Renderer.
+[INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: Added new RenderObject to Renderer.

@@ -122,19 +122,10 @@ void GUI::DisplayObjectOptions()
             case OBJECTYPE::Regular:
             {
                 ImGui::Text("Material Options");
-                ImGui::SliderFloat("r",    &m_CurrentObject->m_Material.color.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("g",    &m_CurrentObject->m_Material.color.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("b",    &m_CurrentObject->m_Material.color.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Ambient.r",     &m_CurrentObject->m_Material.ambient.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Ambient.g",     &m_CurrentObject->m_Material.ambient.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Ambient.b",     &m_CurrentObject->m_Material.ambient.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Diffuse.r",         &m_CurrentObject->m_Material.diffuse.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Diffuse.g",         &m_CurrentObject->m_Material.diffuse.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Diffuse.b",         &m_CurrentObject->m_Material.diffuse.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Specular.r",       &m_CurrentObject->m_Material.specular.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Specular.g",       &m_CurrentObject->m_Material.specular.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Specular.b",       &m_CurrentObject->m_Material.specular.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Shininess", &m_CurrentObject->m_Material.shininess, 0.0f, 500.0f);
+                // Select material combo box
+            if(ImGui::Combo("Materials", &m_CurrentObject->m_MaterialId, [](void* data, int idx, const char** out_text) {
+                *out_text = materials[idx].name.c_str(); return true;}, (void*)NUM_MATERIALS, NUM_MATERIALS))
+                    m_CurrentObject->m_Material = materials[m_CurrentObject->m_MaterialId];
                 break;
             }
             case OBJECTYPE::LightSource:
@@ -143,15 +134,6 @@ void GUI::DisplayObjectOptions()
                 ImGui::SliderFloat("r",    &m_CurrentObject->m_Light.color.x, 0.0f, 1.0f);
                 ImGui::SliderFloat("g",    &m_CurrentObject->m_Light.color.y, 0.0f, 1.0f);
                 ImGui::SliderFloat("b",    &m_CurrentObject->m_Light.color.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Ambient.r",     &m_CurrentObject->m_Light.ambient.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Ambient.g",     &m_CurrentObject->m_Light.ambient.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Ambient.b",      &m_CurrentObject->m_Light.ambient.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Diffuse.r",         &m_CurrentObject->m_Light.diffuse.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Diffuse.g",         &m_CurrentObject->m_Light.diffuse.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Diffuse.b",         &m_CurrentObject->m_Light.diffuse.z, 0.0f, 1.0f);
-                ImGui::SliderFloat("Specular.r",       &m_CurrentObject->m_Light.specular.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Specular.g",       &m_CurrentObject->m_Light.specular.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Specular.b",       &m_CurrentObject->m_Light.specular.z, 0.0f, 1.0f);
                 break;
             }
         }

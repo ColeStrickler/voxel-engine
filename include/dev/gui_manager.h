@@ -7,7 +7,7 @@
 #include <GLFW/glfw3.h>
 #include <thread>
 #include "logger.h"
-
+#include "material.h"
 #include "renderobject.h"
 
 

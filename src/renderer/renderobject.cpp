@@ -137,9 +137,7 @@ void RenderObject::HandlePhongShaders()
                 auto& light = light_obj->m_Light;
                 //m_ShaderProgram->SetUniformVec3("light.color", light_obj->m_LightColor);
                 m_ShaderProgram->SetUniformVec3("light.position", light.position);
-                m_ShaderProgram->SetUniformVec3("light.diffuse", light.diffuse);
-                m_ShaderProgram->SetUniformVec3("light.specular", light.specular);
-                m_ShaderProgram->SetUniformVec3("light.ambient", light.ambient);
+                m_ShaderProgram->SetUniformVec3("light.color", light.color);
             }
             
 
@@ -147,7 +145,6 @@ void RenderObject::HandlePhongShaders()
             m_ShaderProgram->SetUniformVec3("material.diffuse", m_Material.diffuse);
             m_ShaderProgram->SetUniformVec3("material.specular", m_Material.specular);
             m_ShaderProgram->SetUniform1f("material.shininess", m_Material.shininess);
-            m_ShaderProgram->SetUniformVec3("material.color", m_Material.color);
             break;
         }
     }
