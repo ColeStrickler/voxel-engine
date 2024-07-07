@@ -44,7 +44,9 @@ void Logger::Log(LOGTYPE type, const std::string &log_msg)
     /* Only add to log queue if type meets logging level standard */
     if (m_LogLevel <= type)
     {
-        m_InternalLogBuffer.push_back(GetLogLabel(type) + log_msg);
+        auto log = GetLogLabel(type) + log_msg;
+        m_InternalLogBuffer.push_back(log);
+        std::cout << log << std::endl;
     }
 }
 

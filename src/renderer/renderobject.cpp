@@ -16,7 +16,7 @@ RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp,
     m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type)
 {
     m_bUseIndexBuffer = false;
-    m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+   // m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 RenderObject::~RenderObject()
@@ -113,39 +113,50 @@ void RenderObject::SetShaders()
     return;
 }
 
+
+void printVec(const glm::vec3& vec)
+{
+    printf("%.2f, %.2f, %.2f\n", vec.x, vec.y, vec.z);
+}
+
 void RenderObject::HandlePhongShaders()
 {
     switch(m_ObjectType)
     {
-        case OBJECTYPE::LightSource:
+        case OBJECTYPE::PointLightSource:
         {
-            printf("set light color %.2f, %.2f, %.2f\n", m_Light.color.x, m_Light.color.y, m_Light.color.z);
-            m_ShaderProgram->SetUniformVec3("lightColor", m_Light.color);
+            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+           // m_ShaderProgram->SetUniformVec3("lightColor", m_Light.ambient + m_Light.diffuse);
             break;
         }
-        case OBJECTYPE::Regular:
+        case OBJECTYPE::RegularMaterial:
         {
             // this is patchwork for now
             // need to clean this up
-            auto camer_pos = gl.GetCamera()->GetPosition();
-            m_ShaderProgram->SetUniformVec3("viewPos", camer_pos);
-
-
-            auto light_obj = renderer.GetLighting();
-            if (light_obj)
-            {
-                auto& light = light_obj->m_Light;
-                //m_ShaderProgram->SetUniformVec3("light.color", light_obj->m_LightColor);
-                m_ShaderProgram->SetUniformVec3("light.position", light.position);
-                m_ShaderProgram->SetUniformVec3("light.color", light.color);
-            }
-            
-
+            auto camera_pos = gl.GetCamera()->GetPosition();
+            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+            // lighting uniforms should already be set because we use the same shader for both light sources and other objects
             m_ShaderProgram->SetUniformVec3("material.ambient", m_Material.ambient);
             m_ShaderProgram->SetUniformVec3("material.diffuse", m_Material.diffuse);
             m_ShaderProgram->SetUniformVec3("material.specular", m_Material.specular);
             m_ShaderProgram->SetUniform1f("material.shininess", m_Material.shininess);
             break;
         }
+        case OBJECTYPE::TexturedObject:
+        {
+            
+            auto camera_pos = gl.GetCamera()->GetPosition();
+            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+            // lighting uniforms should already be set because we use the same shader for both light sources and other objects
+
+            m_TexturedObject.Bind();
+            m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
+            m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
+            m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+        }
+        default:
+            break;
     }
 }

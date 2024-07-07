@@ -7,6 +7,11 @@
 #include "gl.h"
 #include "renderobject.h"
 
+
+#define MAX_POINT_LIGHTS 100
+
+
+
 class Renderer
 {
 public:
@@ -17,19 +22,19 @@ public:
     RenderObject* FindClosestObject(const glm::vec3& pos);
     void SetLightingModel(LightingModel model) {m_LightingModel = model;}
     LightingModel GetLightingModel() const {return m_LightingModel;}
-    RenderObject* GetLighting() const {return m_LightingObjects;}
+    std::vector<RenderObject*> GetLighting() const {return m_LightingObjects;}
 private:
     
     LightingModel m_LightingModel;
     std::vector<RenderObject*> m_RenderObjects;
-    //std::vector<RenderObject*> m_LightingObjects;
-    RenderObject* m_LightingObjects;
+    std::vector<RenderObject*> m_LightingObjects;
+    //RenderObject* m_LightingObjects;
     std::mutex m_RenderLock;
 
 
 
     void HandleLightSources();
-    void CalculateAndSetLightingUniforms();
+    void CalculateAndSetLightingUniforms(RenderObject* obj, int& point_lights);
 };
 
 #endif

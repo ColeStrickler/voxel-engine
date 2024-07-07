@@ -7,6 +7,32 @@ LogTarget GUI::m_LogTarget;
 bool GUI::m_bRunLogThread;
 std::thread GUI::m_LogThread;
 
+
+
+
+bool Vec3Slider(glm::vec3* v, const std::string& x_label, const std::string& y_label, const std::string& z_label)
+{
+    bool ret = false;
+    ret = ret || ImGui::SliderFloat(x_label.c_str(),    &v->x, -100.0f, 100.0f);
+    ret = ret || ImGui::SliderFloat(y_label.c_str(),    &v->y, -100.0f, 100.0f);
+    ret = ret || ImGui::SliderFloat(z_label.c_str(),    &v->z, -100.0f, 100.0f);
+    return ret;
+}
+
+
+bool RgbSlider(glm::vec3* v)
+{
+
+    bool ret = false;
+    ret = ret || ImGui::SliderFloat("r",    &v->x, 0.0f, 1.0f);
+    ret = ret || ImGui::SliderFloat("g",    &v->y, 0.0f, 1.0f);
+    ret = ret || ImGui::SliderFloat("b",    &v->z, 0.0f, 1.0f);
+    return ret;
+}
+
+
+
+
 GUI::GUI() : m_CurrentObject(nullptr)
 {
     m_LogThread = std::thread(LoggingThread);
@@ -48,7 +74,8 @@ void GUI::End()
 
 void GUI::HandleObjectSelection(RenderObject *obj)
 {
-    m_CurrentObject = obj;
+    if (m_CurrentObject == nullptr)
+        m_CurrentObject = obj;
 }
 
 void GUI::RegisterLogTarget(Logger *logger)
@@ -109,7 +136,9 @@ void GUI::DisplayObjectOptions()
         if (ImGui::Button("Wireframe"))
             m_CurrentObject->ToggleWireFrame();
 
-        HandleObjectPositionOptions();
+        //HandleObjectPositionOptions();
+        if(Vec3Slider(&m_CurrentObject->m_Position, "posX", "posY", "posZ"))
+            m_CurrentObject->SetPosition(m_CurrentObject->GetPosition());
 
         if (ImGui::Button("Duplicate"))
         {
@@ -119,21 +148,20 @@ void GUI::DisplayObjectOptions()
 
         switch(m_CurrentObject->GetType())
         {
-            case OBJECTYPE::Regular:
+            case OBJECTYPE::RegularMaterial:
             {
                 ImGui::Text("Material Options");
                 // Select material combo box
-            if(ImGui::Combo("Materials", &m_CurrentObject->m_MaterialId, [](void* data, int idx, const char** out_text) {
-                *out_text = materials[idx].name.c_str(); return true;}, (void*)NUM_MATERIALS, NUM_MATERIALS))
-                    m_CurrentObject->m_Material = materials[m_CurrentObject->m_MaterialId];
+                if(ImGui::Combo("Materials", &m_CurrentObject->m_MaterialId, [](void* data, int idx, const char** out_text) {
+                    *out_text = materials[idx].name.c_str(); return true;}, (void*)NUM_MATERIALS, NUM_MATERIALS))
+                        m_CurrentObject->m_Material = materials[m_CurrentObject->m_MaterialId];
                 break;
             }
-            case OBJECTYPE::LightSource:
+            case OBJECTYPE::PointLightSource:
             {
                 ImGui::Text("Light Source Options");
-                ImGui::SliderFloat("r",    &m_CurrentObject->m_Light.color.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("g",    &m_CurrentObject->m_Light.color.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("b",    &m_CurrentObject->m_Light.color.z, 0.0f, 1.0f);
+              //  RgbSlider(&m_CurrentObject->m_Light.color);
+                Vec3Slider(&m_CurrentObject->m_Light.direction, "lightDirX", "lightDirY", "lightDirZ");
                 break;
             }
         }

@@ -1,6 +1,11 @@
 #include "texture.h"
 #include "stb_image.h"
 #include <iostream>
+#include "logger.h"
+
+
+extern Logger logger;
+
 
 Texture::Texture(const std::string& path, const std::string& name, unsigned int min_filter, 
 	unsigned int mag_filter, unsigned int texture_wrap, unsigned int texture_storage_format,
@@ -13,17 +18,9 @@ Texture::Texture(const std::string& path, const std::string& name, unsigned int 
     if (!m_LocalBuffer)
         std::cout << "Failed to load texture" << std::endl;
 	glGenTextures(1, &m_RendererID);
-	glBindTexture(GL_TEXTURE_2D, m_RendererID);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_Width, m_Height, 0,
-		GL_RGB, GL_UNSIGNED_BYTE, m_LocalBuffer);
-	glGenerateMipmap(GL_TEXTURE_2D);
+	
 	//glBindTexture(GL_TEXTURE_2D, 0);
-
+	HandleFileTypeLoadSpecifics();
 
 	if (m_LocalBuffer)
 	{
@@ -50,4 +47,39 @@ void Texture::Bind() const
 void Texture::Unbind()
 {
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Texture::HandleFileTypeLoadSpecifics()
+{
+	std::string extension = ExtractFileExtension(m_FilePath);
+	if (extension == "jpg")
+		HandleLoadJPG();
+	else if (extension == "png")
+		HandleLoadPNG();
+	else
+		logger.Log(LOGTYPE::WARNING, "Texture::HandleFileTypeLoadSpecifics() --> no suitable load handler for extension " + extension);
+}
+
+void Texture::HandleLoadJPG()
+{
+	glBindTexture(GL_TEXTURE_2D, m_RendererID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_Width, m_Height, 0,
+		GL_RGB, GL_UNSIGNED_BYTE, m_LocalBuffer);
+	glGenerateMipmap(GL_TEXTURE_2D);
+}
+
+void Texture::HandleLoadPNG()
+{
+	glBindTexture(GL_TEXTURE_2D, m_RendererID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, m_LocalBuffer);
+	glGenerateMipmap(GL_TEXTURE_2D);
 }

@@ -49,7 +49,6 @@ float Random() {
 
 int main()
 {
-
     gl.SetDepthTesting(true);
 
     GUI_Manager.RegisterLogTarget(&logger);
@@ -58,67 +57,87 @@ int main()
 
     Shader vertex_shader(getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
     if (vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
-        std::cout << vertex_shader.FetchLog();
-
+        logger.Log(LOGTYPE::ERROR, vertex_shader.FetchLog());
+    printf("hejre!\n");
     Shader fragment_shader(getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
     if (fragment_shader.CheckError() != ShaderError::NO_ERROR_OK)
-        std::cout << fragment_shader.FetchLog();
-
-    Shader lighting_fragment(getcwd() + "/src/shaders/ls_fragment.glsl", GL_FRAGMENT_SHADER);
-    if (lighting_fragment.CheckError() != ShaderError::NO_ERROR_OK)
-        std::cout << lighting_fragment.FetchLog();
-
-    Shader lighting_vertex(getcwd() + "/src/shaders/ls_vertex.glsl", GL_VERTEX_SHADER);
-    if (lighting_vertex.CheckError() != ShaderError::NO_ERROR_OK)
-        std::cout << lighting_vertex.FetchLog();
+        logger.Log(LOGTYPE::ERROR, fragment_shader.FetchLog());
+    printf("hejre!\n");
 
     // check for shader compile errors
     ShaderProgram shaderProgram;
-    ShaderProgram lightSource;
     shaderProgram.AddShader(&vertex_shader);
     shaderProgram.AddShader(&fragment_shader);
-
-    lightSource.AddShader(&lighting_vertex);
-    lightSource.AddShader(&lighting_fragment);
+     printf("hejre!\n");
     // glAttachShader(shaderProgram, vertexShader);
     // glAttachShader(shaderProgram, fragmentShader);
     renderer.SetLightingModel(LightingModel::Phong);
+   printf("hejre!\n");
 
     if (!shaderProgram.Compile())
     {
         return -1;
     }
+ printf("hejre!\n");    
 
-    if (!lightSource.Compile())
-    {
-        return -1;
-    }
 
     BufferLayout* lighting_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-                                  new BufferElement("NORMALS", ShaderDataType::Float3, false)});
+         new BufferElement("NORMALS", ShaderDataType::Float3, false),
+          new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
     VertexArray* lva = new VertexArray;
-    VertexBuffer* lighting_vbo = new VertexBuffer(light_vertices, sizeof(light_vertices));
+    VertexBuffer* lighting_vbo = new VertexBuffer(tvertices, sizeof(tvertices));
     lighting_vbo->SetLayout(lighting_layout);
     lva->AddVertexBuffer(lighting_vbo);
 
-    RenderObject* l_obj = new RenderObject(lva, lighting_vbo, &lightSource, OBJECTYPE::LightSource);
+    RenderObject* l_obj = new RenderObject(lva, lighting_vbo, &shaderProgram, OBJECTYPE::PointLightSource);
     l_obj->SetPosition({0.0f, 0.0f, 0.0f});
-    renderer.AddRenderObject(l_obj);
-    for (int i = 0; i < 1; i++)
+    l_obj->m_Light.direction = glm::vec3({0.0, 0.0, 0.0});
+
+
+
+
+    BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
+         new BufferElement("NORMALS", ShaderDataType::Float3, false),
+          new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
+    VertexArray* tva = new VertexArray;
+    VertexBuffer* tex_vbo = new VertexBuffer(tvertices, sizeof(tvertices));
+    tex_vbo->SetLayout(tex_layout);
+    tva->AddVertexBuffer(tex_vbo);
+    RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, OBJECTYPE::TexturedObject);
+    l_obj->SetPosition({0.0, 0.0, 0.0});
+
+    Texture* spec = new Texture(getcwd()+"/src/textures/container2_specular.png", "spec");
+    Texture* diff = new Texture(getcwd()+"/src/textures/container2.png", "diff");
+    t_obj->m_TexturedObject.AddDiffuseMap(diff);
+    t_obj->m_TexturedObject.AddSpecularMap(spec);
+    t_obj->m_TexturedObject.Shininess = 64.0f;
+
+
+
+    //renderer.AddRenderObject(t_obj);
+    //renderer.AddRenderObject(l_obj);
+
+    for (int i = -50; i < 50; i += 15)
     {
-        // VertexBuffer
-        BufferLayout* layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-                            new BufferElement("NORMALS", ShaderDataType::Float3, false)});
-        VertexArray *va = new VertexArray;
-        VertexBuffer* vbo = new VertexBuffer(light_vertices, sizeof(light_vertices));
-        vbo->SetLayout(layout);
-        // IndexBuffer ibo(indices, 6);
-        va->AddVertexBuffer(vbo);
-        va->SetCount(36);
-        RenderObject* r_obj = new RenderObject(va, vbo, &shaderProgram);
-        //r_obj->Translate({2.0f*Random(), 2.0f*Random(), 2.0f*Random()});
-         r_obj->SetPosition({0.0f, 0.0f, 0.0f});
-        renderer.AddRenderObject(r_obj);
+        for (int j = -50; j < 50; j += 15)
+        {
+            auto obj = l_obj->Duplicate();
+            obj->Translate({1.0*i, 55.0f, 1.0*j});
+            renderer.AddRenderObject(obj);
+        }
+
+    }
+
+
+
+    for (int i = -50; i < 50; i++)
+    {
+        for (int j = -50; j < 50; j++)
+        {
+            auto obj = t_obj->Duplicate();
+            obj->Translate({1.0*i, 0.0f, 1.0*j});
+            renderer.AddRenderObject(obj);
+        }
     }
     
     

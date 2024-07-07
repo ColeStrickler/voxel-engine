@@ -1,7 +1,20 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 #include "glvertexarray.h"
+#include "texture.h"
 
+
+typedef struct TextureObject
+{
+    void AddDiffuseMap(Texture* dm) {DiffuseMap = dm;}
+    void AddSpecularMap(Texture* sm) {SpecularMap = sm;}
+    void Bind();
+    int GetDiffuseSlot() const  {return DiffuseMap->GetTextureSlot();}
+    int GetSpecularSlot() const {return SpecularMap->GetTextureSlot();}
+    Texture* DiffuseMap;
+    Texture* SpecularMap;
+    float Shininess;
+}TextureObject;
 
 
 typedef struct Material
@@ -12,11 +25,25 @@ typedef struct Material
     glm::vec3 specular;
     float shininess;
 }Material;
+
 // will probably want a separate list for lights once we start to have more than 1
 typedef struct Light
 {
+    Light() : position(glm::vec3(0.0f)), direction(glm::vec3(0.0f)),\
+        ambient(glm::vec3(0.1f)), diffuse(glm::vec3(0.5f)), constant(1.0f),\
+        specular(glm::vec3(1.0f)), linear(0.09f), quadratic(0.032f)
+    {
+
+    }
+    
     glm::vec3 position;
-    glm::vec3 color;
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
 }Light;
 
 

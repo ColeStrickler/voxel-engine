@@ -218,6 +218,7 @@ bool ShaderProgram::Compile()
         m_error = ShaderError::PROGRAM_LINK_ERROR;
         return false;
     }
+    printf("here no error\n");
     return true;
 }
 

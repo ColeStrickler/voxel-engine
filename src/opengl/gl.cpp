@@ -14,7 +14,8 @@ float GLManager::m_LastX = 0.0f;
 float GLManager::m_LastY = 0.0f;
 std::unordered_map<int, std::function<void()>> GLManager::m_KeyCallbacks;
 
-GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(static_cast<float>(window_height), static_cast<float>(window_width), DEFUALT_MOVE_SPEED, this))
+GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(static_cast<float>(window_height), static_cast<float>(window_width), DEFUALT_MOVE_SPEED, this)),
+    m_ViewLock(false)
 {
     GLFW_Init();
     GLAD_Init();
@@ -136,6 +137,8 @@ void GLManager::GLAD_Init()
 
 void GLManager::MouseScrollCallback(GLFWwindow *window, double xposIn, double yposIn)
 {
+    if (gl.m_ViewLock)
+        return;
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -192,11 +195,13 @@ void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, i
 void GLManager::HandleToggleCursorHidden()
 {
    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); 
+   m_ViewLock = true;
 }
 
 void GLManager::HandleToggleCursorVisible()
 {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
+    m_ViewLock = false;
 }
 
 Camera::Camera(float screen_height, float screen_width, float speed, GLManager *manager) : m_Manager(manager)

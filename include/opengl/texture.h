@@ -10,6 +10,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <string>
 
+static std::string ExtractFileExtension(const std::string& filename)
+{
+	    size_t dotIndex = filename.rfind('.');
+		if (dotIndex != std::string::npos) {
+			return filename.substr(dotIndex + 1);
+		}
+		return ""; // No extension found
+}
+
+
+
 class Texture
 {
 public:
@@ -27,6 +38,10 @@ public:
 	inline int GetTextureSlot() const { return m_Slot; };
 	std::string GetName() const { return m_Name; };
 private:
+	void HandleFileTypeLoadSpecifics();
+	void HandleLoadJPG();
+	void HandleLoadPNG();
+
 	unsigned int m_RendererID;
 	std::string m_FilePath;
 	std::string m_Name;

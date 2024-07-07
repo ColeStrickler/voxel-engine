@@ -7,8 +7,10 @@
 
 enum OBJECTYPE
 {
-    LightSource,
-    Regular
+    RegularMaterial,
+    PointLightSource,
+    TexturedObject,
+    DirectionalLightSource,
 };
 
 
@@ -19,8 +21,8 @@ enum OBJECTYPE
 class RenderObject
 {
 public:
-    RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type = OBJECTYPE::Regular);
-    RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type = OBJECTYPE::Regular);
+    RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type = OBJECTYPE::RegularMaterial);
+    RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type = OBJECTYPE::RegularMaterial);
     ~RenderObject();
     void Render();
     RenderObject* Duplicate();
@@ -30,17 +32,24 @@ public:
     void Rotate(const glm::vec3& rotation_axis, float angle);
     void ToggleWireFrame() {m_bWireFrame = !m_bWireFrame;}
     void DrawCall() const;
+    ShaderProgram* GetShaderProgram() const {return m_ShaderProgram;}
     OBJECTYPE GetType() const {return m_ObjectType;}
     // may wanna have two different renderobject types and lists once we get multiple light sources
-    
+    glm::vec3 m_Position;
     glm::vec3 m_LightColor;
     Light m_Light;
     Material m_Material;
+    
+    
+    TextureObject m_TexturedObject;
+    void SetSpecularMap(Texture* sm) {m_TexturedObject.AddSpecularMap(sm);}
+    void SetDiffuseMap(Texture* dm) {m_TexturedObject.AddDiffuseMap(dm);}
+
     int m_MaterialId;
 
 
 
-    glm::vec3 m_Position;
+    
 private:
     /* Handle Shader Uniforms*/
     OBJECTYPE m_ObjectType;

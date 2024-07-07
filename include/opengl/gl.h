@@ -16,7 +16,7 @@
 #include "gui_manager.h"
 #define DEFAULT_WINDOW_WIDTH 1200U
 #define DEFAULT_WINDOW_HEIGHT 900U
-#define DEFUALT_MOVE_SPEED 10.0f
+#define DEFUALT_MOVE_SPEED 40.0f
 #define DEFAULT_MOUSE_SENSITIVITY 0.10f
 #define DEFAULT_OPENGL_VERSION_MAJOR 4
 #define DEFAULT_OPENGL_VERSION_MINOR 5
@@ -103,7 +103,7 @@ private:
     void HandleToggleCursorHidden();
     void HandleToggleCursorVisible();
     std::unordered_map<int, bool> m_KeyPressed;
-
+    bool m_ViewLock;
     bool m_bCursorHidden;
     // mouse pos
     static bool m_FirstMouse;
