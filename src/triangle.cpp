@@ -172,8 +172,6 @@ int main()
     {
         // gl.CalcDeltaTime();
         gl.PerFrame();
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
         logger.WriteLogs();
         // model = glm::rotate(model, .1f, );
        // r_obj.Rotate(glm::vec3(0.5f, 1.0f, 0.0f), .1f);
@@ -203,15 +201,15 @@ int main()
        // shaderProgram.SetUniformVec3("viewPos", gl.GetCamera()->GetPosition());
         // shaderProgram.SetUniformMat4("model", model);
         
-        renderer.RenderText("Swag", 250.0f, 250.0f, 1.0f, glm::vec3(0.5, 0.0f, 0.2f));
+       
 
 
         // va.Bind();
       
        
-
+        
         renderer.RenderAllObjects();
-
+       
 
         // va.Bind();
         // glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized

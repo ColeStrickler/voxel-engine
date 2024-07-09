@@ -11,6 +11,7 @@
 #include "shader.h"
 #include <string>
 #include <iostream>
+#include <deque>
 #include <functional> // for std::bind
 #include "renderer.h"
 #include "gui_manager.h"
@@ -22,6 +23,18 @@
 #define DEFAULT_OPENGL_VERSION_MINOR 5
 #define MOUSE_CLICK_OBJ_SEL_THRESHOLD 1.0f
 class GLManager;
+
+typedef struct GlStats
+{
+    float m_FramesPerSecond;
+    std::deque<float> m_PrevTimes;
+    float m_MemoryUsage;
+    float m_DrawCalls;
+    float m_GPUMemoryUsage;
+    float m_NumTriangles;
+}GlStats;
+
+
 
 class Camera
 {
@@ -46,6 +59,8 @@ public:
     void CameraHandleKey_SPACE();
     void UpdateCameraVectors();
 
+    float GetScreenWidth() const {return m_ScreenWidth;}
+    float GetScreenHeight() const {return m_ScreenHeight;}
 private:
     // glm::mat4 m_Model; the model matrix will be set by the rendered objects
     glm::vec3 m_CameraPos;
@@ -103,9 +118,16 @@ private:
     static void MouseClickCallback(GLFWwindow *window, int button, int action, int mods);
     void HandleToggleCursorHidden();
     void HandleToggleCursorVisible();
-    std::unordered_map<int, bool> m_KeyPressed;
+    void HandleShowGlStats();
+    void DisplayGlStats();
+    void UpdateStats();
+    std::unordered_map<int, int> m_KeyPressed;
     bool m_ViewLock;
     bool m_bCursorHidden;
+    bool m_bShowGlStats;
+    GlStats m_GlStats;
+
+
     // mouse pos
     static bool m_FirstMouse;
     static float m_LastX;

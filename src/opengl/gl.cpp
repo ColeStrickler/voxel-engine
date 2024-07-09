@@ -15,7 +15,7 @@ float GLManager::m_LastY = 0.0f;
 std::unordered_map<int, std::function<void()>> GLManager::m_KeyCallbacks;
 
 GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(static_cast<float>(window_height), static_cast<float>(window_width), DEFUALT_MOVE_SPEED, this)),
-    m_ViewLock(false)
+    m_ViewLock(false), m_bShowGlStats(false)
 {
     GLFW_Init();
     GLAD_Init();
@@ -36,6 +36,7 @@ GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(st
     RegisterKeyCallback(GLFW_KEY_S, std::bind(&Camera::CameraHandleKey_S, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_D, std::bind(&Camera::CameraHandleKey_D, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_ESCAPE, std::bind(&GLManager::HandleToggleCursorHidden, this));
+    RegisterKeyCallback(GLFW_KEY_F2, std::bind(&GLManager::HandleShowGlStats, this));
     RegisterKeyCallback(GLFW_KEY_F1, std::bind(&GLManager::HandleToggleCursorVisible, this));
     glfwSetCursorPosCallback(window, MouseScrollCallback);
 }
@@ -92,12 +93,18 @@ void GLManager::PerFrame()
     }
 
     CalcDeltaTime();
+    UpdateStats();
     m_Camera.UpdateCameraVectors();
     m_Camera.GetViewMatrix();
 
     glClearColor(0.1f, 0.1f, 0.3f, 1.0f);
     //glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
+    DisplayGlStats();
+
 }
 
 void GLManager::GLFW_Init()
@@ -161,7 +168,7 @@ void GLManager::MouseScrollCallback(GLFWwindow *window, double xposIn, double yp
 
 void GLManager::HandleAllKeyCallbacks(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-    gl.m_KeyPressed[key] = ((action == GLFW_PRESS || action == GLFW_REPEAT) ? true : false);
+    gl.m_KeyPressed[key] = action;
 }
 
 void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, int mods)
@@ -203,6 +210,35 @@ void GLManager::HandleToggleCursorVisible()
 {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
     m_ViewLock = false;
+}
+
+void GLManager::HandleShowGlStats()
+{
+ // dummy
+}
+
+void GLManager::DisplayGlStats()
+{
+    auto KEYSTATUS = m_KeyPressed[GLFW_KEY_F2];
+    if (KEYSTATUS == GLFW_PRESS || KEYSTATUS == GLFW_REPEAT) 
+    {
+        std::string FPS = "FPS: " + std::to_string(m_GlStats.m_FramesPerSecond);
+        renderer.RenderText(FPS.c_str(), 30.0f, gl.GetCamera()->GetScreenHeight() - 30.0f, 0.6f, glm::vec3(0.05f, 1.0f, 0.3f));
+    }
+    
+}
+
+void GLManager::UpdateStats()
+{
+    m_GlStats.m_PrevTimes.push_back(m_DeltaTime);
+    // lets encapsulate this into a method of GlStats
+    while (m_GlStats.m_PrevTimes.size() > 5)
+        m_GlStats.m_PrevTimes.pop_front();
+    float times = 0.0f;
+    for (auto& time : m_GlStats.m_PrevTimes)
+        times += time;
+    times /= 5;
+    m_GlStats.m_FramesPerSecond = 1.0f / times;
 }
 
 Camera::Camera(float screen_height, float screen_width, float speed, GLManager *manager) : m_Manager(manager)
