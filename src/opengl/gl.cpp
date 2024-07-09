@@ -96,6 +96,7 @@ void GLManager::PerFrame()
     m_Camera.GetViewMatrix();
 
     glClearColor(0.1f, 0.1f, 0.3f, 1.0f);
+    //glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -216,7 +217,7 @@ Camera::Camera(float screen_height, float screen_width, float speed, GLManager *
     m_MouseSensitivity = DEFAULT_MOUSE_SENSITIVITY;
     m_Pitch = 0.0f;
     m_Yaw = -90.0f;
-
+    
     UpdateCameraVectors();
     GetViewMatrix();
 }
@@ -230,8 +231,8 @@ void Camera::ChangeScreenDimensions(float width, float height)
 {
     m_ScreenHeight = height;
     m_ScreenWidth = width;
-    printf("width %f, height %f\n", width, height);
     m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 100.0f);
+    m_Ortho = glm::ortho(0.0f, width, 0.0f, height);
 }
 
 bool Camera::SetMVP(ShaderProgram *prog)

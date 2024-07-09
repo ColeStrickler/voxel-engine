@@ -1,11 +1,12 @@
 CC=g++
-CC_FLAGS=-std=c++17 -O2 -ldl -lglfw
+CC_FLAGS=-std=c++17 -O2 -ldl -lglfw -lfreetype
 LD=ld
 BUILD_DIR=./build/
 TARGET_FILE=triangle
 SRC_DIR=./src/
 SRCS=$(shell find $(SRC_DIR) -type f -name "*.cpp")
 OBJS=$(patsubst $(SRC_DIR)%.cpp, $(BUILD_DIR)/%.o,$(SRCS))
+DEPS := $(wildcard include/*.h)
 INCLUDES=\
 -I./include/ \
 -I./include/imgui/ \
@@ -14,12 +15,14 @@ INCLUDES=\
 -I./include/game/ \
 -I./include/dev/ \
 -I./include/renderer/ \
+-I./include/util/ \
+-I/usr/include/freetype2 \
 
 test:
 	echo $(OBJS)
 
 # Rule to compile each source file into object files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEPS)
 	@mkdir -p $(@D)
 	$(CC) $(CC_FLAGS) $(INCLUDES) -c $< -o $@
 

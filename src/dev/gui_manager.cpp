@@ -59,14 +59,15 @@ void GUI::RenderGUI()
 
 void GUI::Begin()
 {
-     ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+   // ImGui::Begin();
 }
 
 void GUI::End()
 {
-    ImGui::End();
+   // ImGui::End();
     // Renders the ImGUI elements
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -107,12 +108,17 @@ void GUI::LoggingThread()
 
 void GUI::DisplayLogs()
 {
+    ImVec2 tabBarSize(ImGui::GetIO().DisplaySize.x, 100);
+    ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - tabBarSize.y), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, tabBarSize.y), ImGuiCond_Always);
+    ImGui::Begin("Log");
     auto logs = m_LogTarget.LogQueue;
 
     for (auto& log: logs)
     {
         ImGui::Text("%s", log.c_str());
     }
+    ImGui::End();
 }
 
 void GUI::DisplayObjectOptions()

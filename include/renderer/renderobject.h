@@ -11,6 +11,7 @@ enum OBJECTYPE
     PointLightSource,
     TexturedObject,
     DirectionalLightSource,
+    TextObject
 };
 
 

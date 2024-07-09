@@ -17,7 +17,8 @@
 #include "gui_manager.h"
 #include "vertices.h"
 #include "renderer.h"
-#include <random>
+#include "util.h"
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
 extern GUI GUI_Manager;
@@ -26,25 +27,10 @@ GLManager gl;
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-std::string getcwd()
-{
-    std::filesystem::path currentPath = std::filesystem::current_path();
-    std::cout << "Current working directory: " << currentPath << std::endl;
-
-    // If you need it explicitly as a std::string
-    return currentPath.string();
-}
 
 
-float Random() {
-    // Create a random number generator
-    std::random_device rd;   // obtain a random number from hardware
-    std::mt19937 gen(rd());  // seed the generator
-    std::uniform_real_distribution<float> dis(0.0f, 1.0f);  // define the range
 
-    // Generate a random float between 0 and 1
-    return dis(gen);
-}
+
 
 
 int main()
@@ -55,30 +41,30 @@ int main()
     logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
     logger.Log(LOGTYPE::INFO, "test");
 
-    Shader vertex_shader(getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
+    Shader vertex_shader(util::getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
     if (vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
         logger.Log(LOGTYPE::ERROR, vertex_shader.FetchLog());
-    printf("hejre!\n");
-    Shader fragment_shader(getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
+
+    Shader fragment_shader(util::getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
     if (fragment_shader.CheckError() != ShaderError::NO_ERROR_OK)
         logger.Log(LOGTYPE::ERROR, fragment_shader.FetchLog());
-    printf("hejre!\n");
+
 
     // check for shader compile errors
     ShaderProgram shaderProgram;
     shaderProgram.AddShader(&vertex_shader);
     shaderProgram.AddShader(&fragment_shader);
-     printf("hejre!\n");
+;
     // glAttachShader(shaderProgram, vertexShader);
     // glAttachShader(shaderProgram, fragmentShader);
     renderer.SetLightingModel(LightingModel::Phong);
-   printf("hejre!\n");
+
 
     if (!shaderProgram.Compile())
     {
         return -1;
     }
- printf("hejre!\n");    
+  
 
 
     BufferLayout* lighting_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
@@ -106,8 +92,8 @@ int main()
     RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, OBJECTYPE::TexturedObject);
     l_obj->SetPosition({0.0, 0.0, 0.0});
 
-    Texture* spec = new Texture(getcwd()+"/src/textures/container2_specular.png", "spec");
-    Texture* diff = new Texture(getcwd()+"/src/textures/container2.png", "diff");
+    Texture* spec = new Texture(util::getcwd()+"/src/textures/container2_specular.png", "spec");
+    Texture* diff = new Texture(util::getcwd()+"/src/textures/container2.png", "diff");
     t_obj->m_TexturedObject.AddDiffuseMap(diff);
     t_obj->m_TexturedObject.AddSpecularMap(spec);
     t_obj->m_TexturedObject.Shininess = 64.0f;
@@ -117,9 +103,9 @@ int main()
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
 
-    for (int i = -50; i < 50; i += 15)
+    for (int i = -50; i < 50; i += 50)
     {
-        for (int j = -50; j < 50; j += 15)
+        for (int j = -50; j < 50; j += 50)
         {
             auto obj = l_obj->Duplicate();
             obj->Translate({1.0*i, 55.0f, 1.0*j});
@@ -130,15 +116,15 @@ int main()
 
 
 
-    for (int i = -50; i < 50; i++)
-    {
-        for (int j = -50; j < 50; j++)
-        {
-            auto obj = t_obj->Duplicate();
-            obj->Translate({1.0*i, 0.0f, 1.0*j});
-            renderer.AddRenderObject(obj);
-        }
-    }
+//    for (int i = -50; i < 50; i++)
+//    {
+//        for (int j = -50; j < 50; j++)
+//        {
+//            auto obj = t_obj->Duplicate();
+//            obj->Translate({1.0*i, 0.0f, 1.0*j});
+//            renderer.AddRenderObject(obj);
+//        }
+//    }
     
     
 
@@ -179,11 +165,15 @@ int main()
     glm::vec3 lightColor = glm::vec3(1.0f, 0.4f, 0.40f);
     ls_model = glm::translate(ls_model, ls_pos);
 
+
+
+    
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
         gl.PerFrame();
-
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
         logger.WriteLogs();
         // model = glm::rotate(model, .1f, );
        // r_obj.Rotate(glm::vec3(0.5f, 1.0f, 0.0f), .1f);
@@ -213,9 +203,15 @@ int main()
        // shaderProgram.SetUniformVec3("viewPos", gl.GetCamera()->GetPosition());
         // shaderProgram.SetUniformMat4("model", model);
         
+        renderer.RenderText("Swag", 250.0f, 250.0f, 1.0f, glm::vec3(0.5, 0.0f, 0.2f));
+
 
         // va.Bind();
+      
+       
+
         renderer.RenderAllObjects();
+
 
         // va.Bind();
         // glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
@@ -237,11 +233,9 @@ int main()
 
         // glBindVertexArray(0); // no need to unbind it every time
 
-        ImVec2 tabBarSize(ImGui::GetIO().DisplaySize.x, 100);
-        ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - tabBarSize.y), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, tabBarSize.y), ImGuiCond_Always);
-        ImGui::Begin("Log");
+        
         GUI_Manager.RenderGUI();
+        
         // Text that appears in the window
         // ImGui::Text("Hello there adventurer!");
 
@@ -255,6 +249,7 @@ int main()
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(gl.GetWindow());
+        glfwPollEvents();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:

@@ -153,3 +153,193 @@ void Renderer::CalculateAndSetLightingUniforms(RenderObject* obj, int& point_lig
     }
 
 }
+
+TextRenderer::TextRenderer()
+{
+    if (!BuildTextShader())
+        return;
+    if (FT_Init_FreeType(&m_FT))
+    {
+        logger.Log(LOGTYPE::ERROR, "ERROR::FREETYPE: Could not init FreeType Library");
+        return;
+    }
+    std::string font_path = util::getcwd() + "/rsrc/fonts/Ubuntu-Th.ttf";
+    if (FT_New_Face(m_FT, font_path.c_str(), 0, &m_Face))
+    {
+        logger.Log(LOGTYPE::ERROR, "ERROR::FREETYPE: Failed to load font");  
+        return;
+    }
+    FT_Set_Pixel_Sizes(m_Face, 0, 48);  
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
+    for (unsigned char c = 0; c < 128; c++)
+    {
+        // load character glyph 
+        if (FT_Load_Char(m_Face, c, FT_LOAD_RENDER))
+        {
+            logger.Log(LOGTYPE::ERROR, "ERROR::FREETYTPE: Failed to load Glyph");
+            return;
+        }
+        // generate texture
+        unsigned int texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RED,
+            m_Face->glyph->bitmap.width,
+            m_Face->glyph->bitmap.rows,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE,
+            m_Face->glyph->bitmap.buffer
+        );
+        // set texture options
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // now store character for later use
+        Character character = {
+            texture, 
+            glm::ivec2(m_Face->glyph->bitmap.width, m_Face->glyph->bitmap.rows),
+            glm::ivec2(m_Face->glyph->bitmap_left,  m_Face->glyph->bitmap_top),
+            static_cast<unsigned int>(m_Face->glyph->advance.x)
+        };
+        m_Characters.insert(std::pair<char, Character>(c, character));
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    FT_Done_Face(m_Face);
+    FT_Done_FreeType(m_FT);
+
+
+    // configure VAO/VBO for texture quads
+    glGenVertexArrays(1, &m_VA);
+    util::checkGLError();
+    glGenBuffers(1, &m_VB);
+    util::checkGLError();
+    glBindVertexArray(m_VA);
+    util::checkGLError();
+    glBindBuffer(GL_ARRAY_BUFFER, m_VB);
+    util::checkGLError();
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+    util::checkGLError();
+    glEnableVertexAttribArray(0);
+    util::checkGLError();
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+    util::checkGLError();
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    util::checkGLError();
+    glBindVertexArray(0);
+    util::checkGLError();
+    
+}
+
+TextRenderer::~TextRenderer()
+{
+    // need to implement
+}
+
+void TextRenderer::RenderText(const std::string& text, float x, float y, float scale, const glm::vec3& color)
+{
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+    m_TextShader->Bind();
+    m_TextShader->SetUniformVec3("textColor", color);
+    auto proj = gl.GetCamera()->GetOrthoProjectionMatrix();
+    m_TextShader->SetUniformMat4("projection", proj);
+    // m_TextShader->SetUniform1i("text", 0);
+    glActiveTexture(GL_TEXTURE0);
+    
+
+
+
+
+    util::checkGLError();
+    glBindVertexArray(m_VA);
+    util::checkGLError();
+    // iterate through all characters
+    std::string::const_iterator c;
+    for (c = text.begin(); c != text.end(); c++) 
+    {
+        Character ch = m_Characters[*c];
+
+        float xpos = x + ch.Bearing.x * scale;
+        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+        float w = ch.Size.x * scale;
+        float h = ch.Size.y * scale;
+        // update VBO for each character
+        float vertices[6][4] = {
+            { xpos,     ypos + h,   0.0f, 0.0f },            
+            { xpos,     ypos,       0.0f, 1.0f },
+            { xpos + w, ypos,       1.0f, 1.0f },
+
+            { xpos,     ypos + h,   0.0f, 0.0f },
+            { xpos + w, ypos,       1.0f, 1.0f },
+            { xpos + w, ypos + h,   1.0f, 0.0f }           
+        };
+       // printf("character %c\n", *c);
+       // for (int i = 0; i < 6; i++)
+       // {
+       //     for (int j = 0; j < 4; j++)
+       //         printf("%.2f,", vertices[i][j]);
+       //     printf("\n");
+       // }
+        // render glyph texture over quad
+        
+        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+        util::checkGLError();
+        // update content of VBO memory
+        glBindBuffer(GL_ARRAY_BUFFER, m_VB);
+        util::checkGLError();
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // be sure to use glBufferSubData and not glBufferData
+        util::checkGLError();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        util::checkGLError();
+        // render quad
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        util::checkGLError();
+        // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+        x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
+    }
+
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ZERO);
+
+}
+
+bool TextRenderer::BuildTextShader()
+{
+    Shader* vertex_shader = new Shader(util::getcwd() + "/src/shaders/text_vertex.glsl", GL_VERTEX_SHADER);
+    if (vertex_shader->CheckError() != ShaderError::NO_ERROR_OK)
+    {
+        logger.Log(LOGTYPE::ERROR, vertex_shader->FetchLog());
+        return false;
+    }
+
+    Shader* fragment_shader = new Shader(util::getcwd() + "/src/shaders/text_fragment.glsl", GL_FRAGMENT_SHADER);
+    if (fragment_shader->CheckError() != ShaderError::NO_ERROR_OK)
+    {
+        logger.Log(LOGTYPE::ERROR, fragment_shader->FetchLog());
+        return false;
+    }
+    m_TextShader = new ShaderProgram();
+    m_TextShader->AddShader(vertex_shader);
+    m_TextShader->AddShader(fragment_shader);
+
+    if(!m_TextShader->Compile())
+    {
+        logger.Log(LOGTYPE::ERROR, "TextRenderer::BuildTextShader() --> unable to compile m_TextShader.\n");
+        return false;
+    }
+    return true;
+}

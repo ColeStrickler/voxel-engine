@@ -7,7 +7,10 @@ VertexArray::VertexArray()
 
 VertexArray::~VertexArray()
 {
-   // 
+    if (m_VertexBuffer)
+        delete m_VertexBuffer;
+    if (m_IndexBuffer)
+        delete m_IndexBuffer;
 }
 
 void VertexArray::Delete()

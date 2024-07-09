@@ -17,7 +17,9 @@ VertexBuffer::VertexBuffer(float *data, uint32_t size)
 
 VertexBuffer::~VertexBuffer()
 {
-    //glDeleteBuffers(1, &m_BufferId);
+    glDeleteBuffers(1, &m_BufferId);
+    if (m_Layout)
+        delete m_Layout;
 }
 
 void VertexBuffer::Delete()
@@ -90,6 +92,8 @@ BufferLayout::BufferLayout(std::initializer_list<BufferElement*> elements) :
 
 BufferLayout::~BufferLayout()
 {
+    for (auto& element: m_Elements)
+        delete element;
 }
 
 void BufferLayout::InitLayout()

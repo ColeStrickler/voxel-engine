@@ -170,7 +170,7 @@ ShaderProgram::ShaderProgram()
 
 ShaderProgram::~ShaderProgram()
 {
-    //glDeleteProgram(m_ProgramId);
+    
 }
 
 void ShaderProgram::AddShader(Shader *shader)
@@ -216,6 +216,7 @@ bool ShaderProgram::Compile()
         glGetProgramInfoLog(m_ProgramId, 512, NULL, infoLog);
         logger.Log(LOGTYPE::ERROR, "ShaderProgram::Compile() " + std::string(infoLog));
         m_error = ShaderError::PROGRAM_LINK_ERROR;
+        printf("Error\n");
         return false;
     }
     printf("here no error\n");
@@ -225,6 +226,8 @@ bool ShaderProgram::Compile()
 void ShaderProgram::Delete() const
 {
     glDeleteProgram(m_ProgramId);
+    for (auto& shader: m_shaders)
+        delete shader;
 }
 
 

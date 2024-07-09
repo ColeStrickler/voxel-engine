@@ -21,7 +21,6 @@
 #define DEFAULT_OPENGL_VERSION_MAJOR 4
 #define DEFAULT_OPENGL_VERSION_MINOR 5
 #define MOUSE_CLICK_OBJ_SEL_THRESHOLD 1.0f
-
 class GLManager;
 
 class Camera
@@ -38,6 +37,7 @@ public:
     glm::vec3 GetPosition() const;
     glm::mat4 GetViewMatrix();
     glm::mat4 GetProjectionMatrix();
+    glm::mat4 GetOrthoProjectionMatrix() { return m_Ortho; }
     void CameraHandleMouseMovement(float xoffset, float yoffset);
     void CameraHandleKey_W();
     void CameraHandleKey_A();
@@ -55,6 +55,7 @@ private:
     glm::vec3 m_WorldUp;
     glm::mat4 m_View;
     glm::mat4 m_Projection;
+    glm::mat4 m_Ortho;
     float m_Pitch;
     float m_Yaw;
     float m_MouseSensitivity;
