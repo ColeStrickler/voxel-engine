@@ -126,7 +126,7 @@ RenderObject *ModelImporter::Mesh2Object(aiMesh *mesh, const aiScene* scene)
     obj->m_TexturedObject.AddSpecularMap(m_LoadedTextures[0]);
     obj->m_TexturedObject.Shininess = 0.01f;
     //delete vertices; --> need to track 
-    //delete indices;
+    delete indices;
     return obj;
 }
 

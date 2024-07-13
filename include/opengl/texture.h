@@ -37,13 +37,15 @@ public:
 	inline int GetHeight() const { return m_Height; };
 	inline int GetTextureSlot() const { return m_Slot; };
 	std::string GetName() const { return m_Name; };
+
+	std::string m_FilePath;
 private:
 	void HandleFileTypeLoadSpecifics();
 	void HandleLoadJPG();
 	void HandleLoadPNG();
 
 	unsigned int m_RendererID;
-	std::string m_FilePath;
+	
 	std::string m_Name;
 	unsigned char* m_LocalBuffer;
 	int m_Width;

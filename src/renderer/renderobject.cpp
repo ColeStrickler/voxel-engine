@@ -121,6 +121,7 @@ void printVec(const glm::vec3& vec)
 
 void RenderObject::HandlePhongShaders()
 {
+    Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
     switch(m_ObjectType)
     {
         case OBJECTYPE::PointLightSource:
@@ -146,6 +147,18 @@ void RenderObject::HandlePhongShaders()
         case OBJECTYPE::TexturedObject:
         {
             
+            auto camera_pos = gl.GetCamera()->GetPosition();
+            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+            // lighting uniforms should already be set because we use the same shader for both light sources and other objects
+
+            m_TexturedObject.Bind();
+            m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
+            m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
+            m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+        }
+        case OBJECTYPE::ComplexModelObject:
+        {
             auto camera_pos = gl.GetCamera()->GetPosition();
             m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
             m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);

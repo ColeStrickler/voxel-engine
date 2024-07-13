@@ -37,3 +37,13 @@ void util::checkGLError()
         std::cerr << "OpenGL Error: " << error << std::endl;
     }
 }
+
+uint32_t util::GetMemoryUsageKb()
+{
+    #ifdef __linux__
+        struct rusage usage;
+        getrusage(RUSAGE_SELF, &usage);
+        return usage.ru_maxrss;
+    #endif
+    return 0;
+}

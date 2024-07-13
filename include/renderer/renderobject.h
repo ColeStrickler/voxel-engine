@@ -11,7 +11,8 @@ enum OBJECTYPE
     PointLightSource,
     TexturedObject,
     DirectionalLightSource,
-    TextObject
+    TextObject,
+    ComplexModelObject
 };
 
 
@@ -40,6 +41,7 @@ public:
     glm::vec3 m_LightColor;
     Light m_Light;
     Material m_Material;
+  //  std::vector<RenderObject*> m_SubObjects;
     
     
     TextureObject m_TexturedObject;

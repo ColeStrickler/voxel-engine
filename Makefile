@@ -1,5 +1,5 @@
 CC=g++
-CC_FLAGS=-std=c++17 -O2 -ldl -lglfw -lfreetype
+CC_FLAGS=-std=c++17 -O2 -ldl -lglfw -lfreetype -lassimp
 LD=ld
 BUILD_DIR=./build/
 TARGET_FILE=triangle

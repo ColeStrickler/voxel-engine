@@ -18,7 +18,7 @@
 #include "vertices.h"
 #include "renderer.h"
 #include "util.h"
-
+#include "model_loader.h"
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
 extern GUI GUI_Manager;
@@ -103,12 +103,12 @@ int main()
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
 
-    for (int i = -50; i < 50; i += 50)
+    for (int i = -50; i < 50; i += 20)
     {
-        for (int j = -50; j < 50; j += 50)
+        for (int j = -50; j < 50; j += 20)
         {
             auto obj = l_obj->Duplicate();
-            obj->Translate({1.0*i, 55.0f, 1.0*j});
+            obj->Translate({1.0*i, 2.0f, 1.0*j});
             renderer.AddRenderObject(obj);
         }
 
@@ -152,6 +152,13 @@ int main()
     // /{
     // /    printf("Could not bind texture1\n");
     // /}
+
+    ModelImporter* import = new ModelImporter(&shaderProgram);
+    import->LoadModel(util::getcwd() + "/include/dev/models/backpack/backpack.obj", aiProcess_Triangulate|aiProcess_FlipUVs);
+    auto& objects = import->GetObjects();
+    auto& one = objects[0];
+    for (auto& obj: objects)
+        renderer.AddRenderObject(obj);
 
     glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 view = glm::mat4(1.0f);
