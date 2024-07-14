@@ -7,6 +7,9 @@
 #include "material.h"
 #include "model_loader.h"
 
+#define STENCIL_OUTLINE_SCALE_FACTOR (1.20f)
+#define STENCIL_OUTLINE_INV_SCALE_FACTOR (1.0f/STENCIL_OUTLINE_SCALE_FACTOR)
+
 enum OBJECTYPE
 {
     RegularMaterial,
@@ -14,8 +17,10 @@ enum OBJECTYPE
     TexturedObject,
     DirectionalLightSource,
     TextObject,
-    ComplexModelObject
+    ComplexModelObject,
+    OutlineObject
 };
+
 
 
 class RenderObject
@@ -31,13 +36,15 @@ public:
     void SetPosition(const glm::vec3& position);
     void Translate(const glm::vec3& translation_vec);
     void Rotate(const glm::vec3& rotation_axis, float angle);
-    void ToggleWireFrame() {m_bWireFrame = !m_bWireFrame;}
+    void Scale(float scale);
     void DrawCall() const;
     ShaderProgram* GetShaderProgram() const {return m_ShaderProgram;}
     OBJECTYPE GetType() const {return m_ObjectType;}
     // may wanna have two different renderobject types and lists once we get multiple light sources
     glm::vec3 m_Position;
-    glm::vec3 m_LightColor;
+    //glm::vec3 m_LightColor;
+    
+
     Light m_Light;
     Material m_Material;
     MeshModel* m_MeshModel;
@@ -51,11 +58,15 @@ public:
     int m_MaterialId;
 
 
+    void ToggleWireFrame() { m_bWireFrame = !m_bWireFrame; }
+    bool UsingWireframe() const { return m_bWireFrame; }
+    void ToggleStencilOutline() { m_bStencilOutline = !m_bStencilOutline;}
+    bool UsingStencilOutline() const { return m_bStencilOutline; }
 
-    
+    OBJECTYPE m_ObjectType;
 private:
     /* Handle Shader Uniforms*/
-    OBJECTYPE m_ObjectType;
+    
     void SetShaders();
     void HandlePhongShaders();
 
@@ -64,6 +75,7 @@ private:
 
     bool m_bUseIndexBuffer;
     bool m_bWireFrame;
+    bool m_bStencilOutline;
     VertexArray* m_VertexArray;
     VertexBuffer* m_VertexBuffer;
     IndexBuffer* m_IndexBuffer;
@@ -75,6 +87,31 @@ private:
 
 
 
+struct WireFrame_RAII
+{
+    WireFrame_RAII(bool use) : m_Use(use)
+    {
+        if (m_Use)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
+    ~WireFrame_RAII()
+    {
+        if (m_Use)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+    bool m_Use;
+};
+
+
+struct StencilOutline_RAII
+{
+    StencilOutline_RAII(bool use, RenderObject* obj);
+
+    ~StencilOutline_RAII();
+    RenderObject* m_Obj;
+    bool m_Use;
+};
 
 
 

@@ -21,7 +21,7 @@
 #define DEFAULT_MOUSE_SENSITIVITY 0.10f
 #define DEFAULT_OPENGL_VERSION_MAJOR 4
 #define DEFAULT_OPENGL_VERSION_MINOR 5
-#define MOUSE_CLICK_OBJ_SEL_THRESHOLD 1.0f
+#define MOUSE_CLICK_OBJ_SEL_THRESHOLD 10.0f
 class GLManager;
 
 typedef struct GlStats
@@ -90,6 +90,7 @@ public:
     static void SetWindowSize(GLFWwindow *window, int width, int height);
     GLFWwindow *GetWindow();
     void SetDepthTesting(bool enable);
+    void SetStencilTesting(bool enable);
     bool UpdateCameraMVP(ShaderProgram *prog);
     void RegisterKeyCallback(int key, std::function<void()> callback);
     Camera *GetCamera() { return &m_Camera; }

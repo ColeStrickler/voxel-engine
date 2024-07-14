@@ -10,12 +10,12 @@ std::thread GUI::m_LogThread;
 
 
 
-bool Vec3Slider(glm::vec3* v, const std::string& x_label, const std::string& y_label, const std::string& z_label)
+bool Vec3Slider(glm::vec3* v, const std::string& x_label, const std::string& y_label, const std::string& z_label, float limit = 100.0f, float floor = -100.0f)
 {
     bool ret = false;
-    ret = ret || ImGui::SliderFloat(x_label.c_str(),    &v->x, -100.0f, 100.0f);
-    ret = ret || ImGui::SliderFloat(y_label.c_str(),    &v->y, -100.0f, 100.0f);
-    ret = ret || ImGui::SliderFloat(z_label.c_str(),    &v->z, -100.0f, 100.0f);
+    ret = ret || ImGui::SliderFloat(x_label.c_str(),    &v->x, floor, limit);
+    ret = ret || ImGui::SliderFloat(y_label.c_str(),    &v->y, floor, limit);
+    ret = ret || ImGui::SliderFloat(z_label.c_str(),    &v->z, floor, limit);
     return ret;
 }
 
@@ -76,7 +76,10 @@ void GUI::End()
 void GUI::HandleObjectSelection(RenderObject *obj)
 {
     if (m_CurrentObject == nullptr)
+    {
         m_CurrentObject = obj;
+        m_ObjectOptions.clear();
+    }
 }
 
 void GUI::RegisterLogTarget(Logger *logger)
@@ -145,6 +148,21 @@ void GUI::DisplayObjectOptions()
         //HandleObjectPositionOptions();
         if(Vec3Slider(&m_CurrentObject->m_Position, "posX", "posY", "posZ"))
             m_CurrentObject->SetPosition(m_CurrentObject->GetPosition());
+
+        Vec3Slider(&m_ObjectOptions.m_RotationAxis, "rotX", "rotY", "rotZ", 1.0f, 0.0f);
+        ImGui::SliderFloat("Rotation Magnitude", &m_ObjectOptions.m_RotationMagnitude, 0.0f, 90.0f);
+        
+        if (ImGui::Button("Rotate"))
+            m_CurrentObject->Rotate(m_ObjectOptions.m_RotationAxis, m_ObjectOptions.m_RotationMagnitude);
+        
+        ImGui::SliderFloat("Scale Magnitude", &m_ObjectOptions.m_ScaleMagnitude, 0.1f, 10.0f);
+        if (ImGui::Button("Scale"))
+            m_CurrentObject->Scale(m_ObjectOptions.m_ScaleMagnitude);
+
+        if (ImGui::Button("Stencil Outline"))
+        {
+            m_CurrentObject->ToggleStencilOutline();
+        }
 
         if (ImGui::Button("Duplicate"))
         {

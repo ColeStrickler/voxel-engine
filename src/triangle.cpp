@@ -36,7 +36,7 @@ const unsigned int SCR_HEIGHT = 600;
 int main()
 {
     gl.SetDepthTesting(true);
-
+    gl.SetStencilTesting(true);
     GUI_Manager.RegisterLogTarget(&logger);
     logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
     logger.Log(LOGTYPE::INFO, "test");
@@ -104,12 +104,12 @@ int main()
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
 
-    for (int i = -50; i < 50; i += 20)
+    for (int i = -0; i < 20; i += 1)
     {
-        for (int j = -50; j < 50; j += 20)
+        for (int j = -0; j < 20; j += 1)
         {
             auto obj = l_obj->Duplicate();
-            obj->Translate({1.0*i, 2.0f, 1.0*j});
+            obj->Translate({1.0*i, 5.0f, 1.0*j});
             renderer.AddRenderObject(obj);
         }
 
@@ -117,15 +117,15 @@ int main()
 
 
 
-//    for (int i = -50; i < 50; i++)
-//    {
-//        for (int j = -50; j < 50; j++)
-//        {
-//            auto obj = t_obj->Duplicate();
-//            obj->Translate({1.0*i, 0.0f, 1.0*j});
-//            renderer.AddRenderObject(obj);
-//        }
-//    }
+    for (int i = -50; i < 50; i += 40)
+    {
+        for (int j = -50; j < 50; j += 40)
+        {
+            auto obj = t_obj->Duplicate();
+            obj->Translate({1.0*i, 0.0f, 1.0*j});
+            renderer.AddRenderObject(obj);
+        }
+    }
     
     
 
@@ -155,10 +155,18 @@ int main()
     // /}
 
     ModelImporter* import = new ModelImporter(&shaderProgram);
-    import->LoadModel(util::getcwd() + "/include/dev/models/backpack/backpack.obj");
+    import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
     auto mesh_model = import->ExportCurrentModel();
     auto obj = new RenderObject(&shaderProgram, mesh_model);
-    renderer.AddRenderObject(obj);
+    for (int i = 0; i < 25; i++)
+    {
+        auto xobj = obj->Duplicate();
+        xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
+        xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
+        renderer.AddRenderObject(xobj);
+    }
+
+    
 
     glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 view = glm::mat4(1.0f);
@@ -173,11 +181,12 @@ int main()
     ls_model = glm::translate(ls_model, ls_pos);
 
 
-
+   
     
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
+        
         gl.PerFrame();
         logger.WriteLogs();
         // model = glm::rotate(model, .1f, );

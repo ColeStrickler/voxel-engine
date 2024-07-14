@@ -11,6 +11,27 @@
 #include "renderobject.h"
 
 
+
+struct ObjectSelectionOptions
+{
+    ObjectSelectionOptions() 
+    {
+        clear();
+    };
+
+    void clear()
+    {
+        m_RotationAxis = glm::vec3(0.0f); 
+        m_RotationMagnitude = 0.1f; 
+        m_ScaleMagnitude = 1.0f;
+    }
+
+    glm::vec3 m_RotationAxis;
+    float m_RotationMagnitude;
+    float m_ScaleMagnitude;
+};
+
+
 class GUI
 {
 public:
@@ -30,6 +51,7 @@ private:
     static bool m_bRunLogThread;
     void DisplayLogs();
 
+    ObjectSelectionOptions m_ObjectOptions;
 
     /* object selection functionality */
     RenderObject* m_CurrentObject;

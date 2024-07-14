@@ -47,13 +47,17 @@ void MeshModel::HandlePhongShaders(int MeshIndex, int MaterialIndex, ShaderProgr
     
     
     
+    
     auto diff = m_Materials[MaterialIndex].DiffuseMap;
     if (diff)
     {
         diff->SetTextureSlot(0);
         sp->SetUniform1i("textureObject.diffuseMap", diff->GetTextureSlot());
         diff->Bind();
+        sp->SetUniform1i("textureObject.useDiffuse", 1);
     }
+    else
+        sp->SetUniform1i("textureObject.useDiffuse", 0);
 
     auto spec = m_Materials[MaterialIndex].SpecularMap;
     if (spec)
@@ -61,7 +65,10 @@ void MeshModel::HandlePhongShaders(int MeshIndex, int MaterialIndex, ShaderProgr
         sp->SetUniform1i("textureObject.specularMap", spec->GetTextureSlot());
         spec->SetTextureSlot(1);
         spec->Bind();
+        sp->SetUniform1i("textureObject.useSpecular", 1);
     }
+    else
+        sp->SetUniform1i("textureObject.useSpecular", 0);
 }
 
 void ModelImporter::LoadModel(const std::string &path, unsigned int flags) 
@@ -82,7 +89,6 @@ void ModelImporter::LoadModel(const std::string &path, unsigned int flags)
 
 MeshModel* ModelImporter::ExportCurrentModel()
 {
-    printf("ModelImporter::ExportCurrentModel()\n");
     MeshModel* model = new MeshModel();
 
     model->m_VAO = m_VAO;
@@ -109,7 +115,6 @@ ModelImporter::~ModelImporter()
 }
 void ModelImporter::InitScene(const aiScene *scene)
 {
-    printf("ModelImporter::InitScene()\n");
     glGenVertexArrays(1, &m_VAO);
     glBindVertexArray(m_VAO);
     glGenBuffers(ARRAY_SIZE_IN_ELEMENTS(m_Buffers), m_Buffers);
@@ -125,7 +130,6 @@ void ModelImporter::InitScene(const aiScene *scene)
 }
 void ModelImporter::CountVerticesAndIndices(const aiScene *scene)
 {
-    printf("ModelImporter::CountVerticesAndIndices()\n");
     for (unsigned int i = 0 ; i < m_Meshes.size() ; i++) {
         m_Meshes[i].MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
         m_Meshes[i].NumIndices = scene->mMeshes[i]->mNumFaces * 3;
@@ -141,28 +145,23 @@ void ModelImporter::CountVerticesAndIndices(const aiScene *scene)
 }
 void ModelImporter::LoadAllMeshes(const aiScene *scene)
 {
-    printf("ModelImporter::LoadAllMeshes()\n");
     for (uint32_t i = 0; i < m_Meshes.size(); i++)
     {
-        printf("Loading mesh %d", i);
         const aiMesh* mesh = scene->mMeshes[i];
         InitMesh(i, mesh);
     }
 }
 void ModelImporter::InitMesh(uint32_t meshIndex, const aiMesh *mesh)
 {
-    printf("ModelImporter::InitMesh() %d\n", meshIndex);
     const aiVector3D zero(0.0f, 0.0f, 0.0f);
     Vertex v;
     
     for (uint32_t i = 0; i < mesh->mNumVertices; i++)
     {
-        printf("vertex %d\n", i);
         auto& pos = mesh->mVertices[i];
         v.Position.x = pos.x;
         v.Position.y = pos.y;
         v.Position.z = pos.z;
-        printf("vertex %d\n", i);
         if (mesh->HasNormals())
         {
             auto& normal = mesh->mNormals[i];
@@ -170,23 +169,19 @@ void ModelImporter::InitMesh(uint32_t meshIndex, const aiMesh *mesh)
             v.Normal.y = normal.y;
             v.Normal.z = normal.z;
         }
-        printf("vertex %d\n", i);
         auto& texcoord =  mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : zero;
         v.TexCoords.x = texcoord.x;
         v.TexCoords.y = texcoord.y;
         m_Vertices.push_back(v);
-        printf("vertex %d\n", i);
     }
 
     // Populate the index buffer
     for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-        printf("indices %d\n", i);
         const aiFace& Face = mesh->mFaces[i];
         m_Indices.push_back(Face.mIndices[0]);
         m_Indices.push_back(Face.mIndices[1]);
         m_Indices.push_back(Face.mIndices[2]);
     }
-    printf("mesh finished\n");
 }
 
 void ModelImporter::InitMaterials(const aiScene *scene)
@@ -194,7 +189,6 @@ void ModelImporter::InitMaterials(const aiScene *scene)
     for (uint32_t i = 0; i < scene->mNumMaterials; i++)
     {
         const aiMaterial* mat = scene->mMaterials[i];
-        printf("loading material %d\n", i);
         LoadMaterialTextures(mat, i);
         // Load Colors() https://github.com/emeiri/ogldev/blob/master/Common/ogldev_basic_mesh.cpp#L576
 
@@ -207,17 +201,14 @@ void ModelImporter::LoadMaterialTextures(const aiMaterial *material, int index)
 }
 
 void ModelImporter::LoadDiffuseTexture(const aiMaterial *material, int index)
-{   printf("LoadDiffuseTexture() %x\n", m_Materials[index]);
+{   
     m_Materials[index].DiffuseMap = nullptr;
-    printf("LoadDiffuseTexture()\n");
     if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
     { 
-        printf("diffuse > 0\n");
         aiString Path;
 
         if (material->GetTexture(aiTextureType_DIFFUSE, 0, &Path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS) {
             const aiTexture* paiTexture = m_Scene->GetEmbeddedTexture(Path.C_Str());
-            printf("Got Diffuse texture\n");
             if (paiTexture) {
                 LoadDiffuseTextureEmbedded(paiTexture, index);
             } else {
@@ -225,7 +216,8 @@ void ModelImporter::LoadDiffuseTexture(const aiMaterial *material, int index)
             }
         }
     }
-     printf("LoadDiffuseTexture() ret\n");
+    else
+        logger.Log(LOGTYPE::INFO, "ModelImporter::LoadDiffuseTexture() --> material " + std::to_string(index) + " has no diffuse texture.");
 }
 
 void ModelImporter::LoadDiffuseTextureEmbedded(const aiTexture* AiTexture, int index)
@@ -237,7 +229,6 @@ void ModelImporter::LoadDiffuseTextureEmbedded(const aiTexture* AiTexture, int i
 
 void ModelImporter::LoadDiffuseTextureFile(const aiMaterial *material, const std::string& file, int index)
 {
-    printf("loading diffuse from file\n");
     m_Materials[index].DiffuseMap = new Texture(m_CurrentDirectory + file, "diff");
 }
 
@@ -246,7 +237,6 @@ void ModelImporter::LoadSpecularTexture(const aiMaterial *material, int index)
     m_Materials[index].SpecularMap = nullptr;
     if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
     {
-        printf("got specular > 0\n");
         aiString Path;
 
         if (material->GetTexture(aiTextureType_SHININESS, 0, &Path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS) {
@@ -259,7 +249,6 @@ void ModelImporter::LoadSpecularTexture(const aiMaterial *material, int index)
             }
         }
     }
-     printf("LoadSpecularTexture() ret\n");
 }
 
 void ModelImporter::LoadSpecularTextureEmbedded(const aiTexture *AiTexture, int index)

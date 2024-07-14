@@ -68,6 +68,15 @@ void GLManager::SetDepthTesting(bool enable)
         glDisable(GL_DEPTH_TEST);
 }
 
+void GLManager::SetStencilTesting(bool enable)
+{
+    if (enable) // should propbably dynamically schange glClear flags here
+         glEnable(GL_STENCIL_TEST);
+    else
+         glDisable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); 
+}
+
 bool GLManager::UpdateCameraMVP(ShaderProgram *prog)
 {
     return m_Camera.SetMVP(prog);
@@ -99,8 +108,8 @@ void GLManager::PerFrame()
 
     glClearColor(0.1f, 0.1f, 0.3f, 1.0f);
     //glClear(GL_COLOR_BUFFER_BIT);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
+    
 
 
     DisplayGlStats();
@@ -273,7 +282,7 @@ void Camera::ChangeScreenDimensions(float width, float height)
 {
     m_ScreenHeight = height;
     m_ScreenWidth = width;
-    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 100.0f);
+    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 200.0f);
     m_Ortho = glm::ortho(0.0f, width, 0.0f, height);
 }
 

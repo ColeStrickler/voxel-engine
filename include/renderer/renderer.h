@@ -64,7 +64,6 @@ public:
     // move back to private
     TextRenderer m_TextRenderer;
 private:
-    
     LightingModel m_LightingModel;
     std::vector<RenderObject*> m_RenderObjects;
     std::vector<RenderObject*> m_LightingObjects;

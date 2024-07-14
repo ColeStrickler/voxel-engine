@@ -32,6 +32,9 @@ struct TextureObject
 {
     sampler2D diffuseMap;
     sampler2D specularMap;
+    int useDiffuse;
+    int useSpecular;
+
     float shininess;
 };
 
@@ -73,6 +76,13 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
+
+
+    if (textureObject.useDiffuse == 0)
+        diffuse = vec3(0.0, 0.0, 0.0);
+    if (textureObject.useSpecular == 0)
+        specular = vec3(0.0, 0.0, 0.0);
+
     return (ambient + diffuse + specular);
 } 
 
@@ -94,6 +104,12 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     vec3 ambient  = light.ambient  * vec3(texture(textureObject.diffuseMap, TexCoords));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture(textureObject.diffuseMap, TexCoords));
     vec3 specular = light.specular * spec * vec3(texture(textureObject.specularMap, TexCoords));
+
+
+    if (textureObject.useDiffuse == 0)
+        diffuse = vec3(0.0, 0.0, 0.0);
+    if (textureObject.useSpecular == 0)
+        specular = vec3(0.0, 0.0, 0.0);
     return (ambient + diffuse + specular);
 } 
 
@@ -121,7 +137,8 @@ void main()
         case 1: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;
         case 2: FragColor = vec4(getTextureColor(), 1.0); break;
         case 3: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;
-        case 5: FragColor = vec4(vec3(texture(textureObject.diffuseMap, TexCoords)), 1.0); break;
+        case 5: FragColor = vec4(getTextureColor(), 1.0); break;
+        case 6: FragColor = vec4(1.0, 0.3, 0.3, 1.0); break;
         default: FragColor = vec4(1.0, 1.0, 1.0, 1.0); break;
     }
 }

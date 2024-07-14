@@ -5,7 +5,7 @@ extern Renderer renderer;
 extern GLManager gl;
 extern Logger logger;
 RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type) : m_VertexArray(va), m_VertexBuffer(vb), \
-    m_ShaderProgram(sp), m_IndexBuffer(ib), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type)
+    m_ShaderProgram(sp), m_IndexBuffer(ib), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false)
 {
     if (ib != nullptr)
         m_bUseIndexBuffer = true;
@@ -13,14 +13,14 @@ RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp
 }
 
 RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type ) : m_VertexArray(va), m_VertexBuffer(vb), m_ShaderProgram(sp), \
-    m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type)
+    m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false)
 {
     m_bUseIndexBuffer = false;
    // m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(OBJECTYPE::ComplexModelObject), m_VertexArray(NULL), m_VertexBuffer(NULL),\
-    m_IndexBuffer(NULL), m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false)
+    m_IndexBuffer(NULL), m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_bStencilOutline(false)
 {
     m_MeshModel = model;
     m_ShaderProgram =sp;
@@ -63,7 +63,7 @@ RenderObject* RenderObject::Duplicate()
 void RenderObject::SetPosition(const glm::vec3 &position)
 {
     m_Position = position;
-    m_Model = glm::translate(glm::mat4(1.0f), m_Position);
+    m_Model[3] = glm::vec4(m_Position, 1.0f);
 }
 
 void RenderObject::Translate(const glm::vec3 &translation_vec)
@@ -74,52 +74,35 @@ void RenderObject::Translate(const glm::vec3 &translation_vec)
 
 void RenderObject::Rotate(const glm::vec3 &rotation_axis, float angle)
 {
+    if (rotation_axis.x == 0.0f && rotation_axis.y == 0.0f && rotation_axis.z == 0.0f)
+        return;
     m_Model = glm::rotate(m_Model, angle, rotation_axis);
+}
+
+void RenderObject::Scale(float scale)
+{
+    m_Model = glm::scale(m_Model, glm::vec3(scale, scale, scale));
 }
 
 void RenderObject::DrawCall() const
 {
+    WireFrame_RAII wireframe(m_bWireFrame);
+    
+
     if (m_ObjectType == OBJECTYPE::ComplexModelObject)
     {
-        if (m_bWireFrame)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            m_MeshModel->Render(renderer.GetLightingModel(), m_ShaderProgram);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-        else
-             m_MeshModel->Render(renderer.GetLightingModel(), m_ShaderProgram);
-       
+        m_MeshModel->Render(renderer.GetLightingModel(), m_ShaderProgram);
         return;
     }
-
-
-
-
+    StencilOutline_RAII stencil(m_bStencilOutline, (RenderObject*)this);
     int count = m_VertexArray->GetCount();
     if (m_bUseIndexBuffer)
     {
-        if (m_bWireFrame)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glDrawElements(GL_LINES, count, GL_UNSIGNED_INT, nullptr);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-        else
-            glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
     }
     else
     {
-        if (m_bWireFrame)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-        else
-        {
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 }
 
@@ -181,13 +164,64 @@ void RenderObject::HandlePhongShaders()
             m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
             m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
             m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+            m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
+            m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 1);
         }
         case OBJECTYPE::ComplexModelObject:
         {
             m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
             break; // rest  set in draw call
         }
+        case OBJECTYPE::OutlineObject:
+        {
+            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+            break;
+        }
         default:
             break;
+    }
+}
+
+StencilOutline_RAII::StencilOutline_RAII(bool use, RenderObject *obj) : m_Use(use), m_Obj(obj)
+{
+    if (!m_Use)
+    {
+        glStencilMask(0x00);
+        return;
+    }
+    else
+    {
+        glStencilFunc(GL_ALWAYS, 1, 0xFF); 
+        glStencilMask(0xFF); 
+    }
+}
+
+StencilOutline_RAII::~StencilOutline_RAII()
+{
+    {
+        if (!m_Use)
+        {
+            return;
+        }
+        else
+        {
+            /*
+                This will scale up the object to draw the outline
+            */
+            auto type = m_Obj->m_ObjectType;
+            glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+            glStencilMask(0x00); 
+            //glDisable(GL_DEPTH_TEST);
+            m_Obj->ToggleStencilOutline();
+            m_Obj->Scale(STENCIL_OUTLINE_SCALE_FACTOR);
+            m_Obj->m_ObjectType = OBJECTYPE::OutlineObject;
+            m_Obj->Render();
+            m_Obj->m_ObjectType = type;
+            m_Obj->Scale(STENCIL_OUTLINE_INV_SCALE_FACTOR);
+            m_Obj->ToggleStencilOutline();
+            glStencilMask(0xff); 
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+            glEnable(GL_DEPTH_TEST);  
+        }
     }
 }

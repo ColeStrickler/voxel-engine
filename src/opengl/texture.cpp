@@ -13,15 +13,37 @@ Texture::Texture(const std::string& path, const std::string& name, unsigned int 
 	m_Width(0), m_RendererID(0), m_BPP(0), m_Slot(0)
 {
 	// Must flip image on load for use by OpenGL --> may need to play with this to get it right
-	std::cout << path << std::endl;
+	
 	stbi_set_flip_vertically_on_load(1);
-	m_LocalBuffer = stbi_load(path.c_str(), &m_Width, &m_Height, &m_BPP, 0);
-    if (!m_LocalBuffer)
-        std::cout << "Failed to load texture" << std::endl;
+	m_LocalBuffer = stbi_load(m_FilePath.c_str(), &m_Width, &m_Height, &m_BPP, 0);
+     if (!m_LocalBuffer)
+    {
+		logger.Log(LOGTYPE::ERROR, "Texture::Texture() Failed to load texture from file.");
+		size_t backSlashPos;
+		while ((backSlashPos = m_FilePath.find('\\')) != std::string::npos)
+		{
+			logger.Log(LOGTYPE::INFO, "Texture::Texture() found backslashes in file path. Attempting to convert to Linux compatible path.");
+			m_FilePath.replace(backSlashPos, 1, "/");
+			std::cout << m_FilePath << std::endl;
+			m_LocalBuffer = stbi_load(m_FilePath.c_str(), &m_Width, &m_Height, &m_BPP, 0);
+			if (m_LocalBuffer != NULL)
+			{
+				logger.Log(LOGTYPE::INFO, "Texture::Texture() successfully recovered error.");
+				break;
+			}
+		}
+	}
+
+	if (!m_LocalBuffer)
+	{
+		logger.Log(LOGTYPE::ERROR, "Texture::Texture() unable to recover error.");
+		return;
+	}
+	logger.Log(LOGTYPE::INFO, "Texture::Texture() successfully loaded " + m_FilePath);
 	glGenTextures(1, &m_RendererID);
 	
 	//glBindTexture(GL_TEXTURE_2D, 0);
-	HandleFileTypeLoadSpecifics();
+	LoadInternal(m_LocalBuffer);
 
 	if (m_LocalBuffer)
 	{
@@ -100,30 +122,35 @@ void Texture::LoadInternal(void *pImageData)
 
     switch (m_BPP) {
         case 1:
+		{
+			
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_Width, m_Height, 0, GL_RED, GL_UNSIGNED_BYTE, pImageData);
             break;
-
+		}
         case 2:
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, m_Width, m_Height, 0, GL_RED, GL_UNSIGNED_BYTE, pImageData);
+		{
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, m_Width, m_Height, 0, GL_RG, GL_UNSIGNED_BYTE, pImageData);
             break;
-
+		}
         case 3:
-           	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_Width, m_Height, 0, GL_RED, GL_UNSIGNED_BYTE, pImageData);
+        {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_Width, m_Height, 0, GL_RGB, GL_UNSIGNED_BYTE, pImageData);
             break;
-
+		}
         case 4:
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RED, GL_UNSIGNED_BYTE, pImageData);
+        {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pImageData);
             break;
-
+		}
         default:
             logger.Log(LOGTYPE::WARNING, "Texture::LoadInternal --> support for texture BPP " + std::to_string(m_BPP) + " not supported\n");
     }
-
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	glGenerateMipmap(GL_TEXTURE_2D);
+	
     glBindTexture(GL_TEXTURE_2D, 0);
 }
