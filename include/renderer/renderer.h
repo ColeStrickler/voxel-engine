@@ -8,8 +8,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "gl.h"
 #include "renderobject.h"
+#include "gl.h"
 #include "util.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -22,6 +22,7 @@ struct Character {
     unsigned int Advance;    // Offset to advance to next glyph
 };
 
+class RenderObject;
 
 class TextRenderer
 {

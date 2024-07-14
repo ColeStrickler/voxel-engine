@@ -91,6 +91,7 @@ int main()
     tva->AddVertexBuffer(tex_vbo);
     RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, OBJECTYPE::TexturedObject);
     l_obj->SetPosition({0.0, 0.0, 0.0});
+    
 
     Texture* spec = new Texture(util::getcwd()+"/src/textures/container2_specular.png", "spec");
     Texture* diff = new Texture(util::getcwd()+"/src/textures/container2.png", "diff");
@@ -154,11 +155,10 @@ int main()
     // /}
 
     ModelImporter* import = new ModelImporter(&shaderProgram);
-    import->LoadModel(util::getcwd() + "/include/dev/models/backpack/backpack.obj", aiProcess_Triangulate|aiProcess_FlipUVs);
-    auto& objects = import->GetObjects();
-    auto& one = objects[0];
-    for (auto& obj: objects)
-        renderer.AddRenderObject(obj);
+    import->LoadModel(util::getcwd() + "/include/dev/models/backpack/backpack.obj");
+    auto mesh_model = import->ExportCurrentModel();
+    auto obj = new RenderObject(&shaderProgram, mesh_model);
+    renderer.AddRenderObject(obj);
 
     glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
     glm::mat4 view = glm::mat4(1.0f);

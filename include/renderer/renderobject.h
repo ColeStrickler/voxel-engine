@@ -1,9 +1,11 @@
 #ifndef RENDEROBJECT_H
 #define RENDEROBJECT_H
+#include "model_loader.h"
 #include "glvertexarray.h"
 #include "glbuffer.h"
 #include "shader.h"
 #include "material.h"
+#include "model_loader.h"
 
 enum OBJECTYPE
 {
@@ -16,15 +18,12 @@ enum OBJECTYPE
 };
 
 
-
-
-
-
 class RenderObject
 {
 public:
     RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type = OBJECTYPE::RegularMaterial);
     RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type = OBJECTYPE::RegularMaterial);
+    RenderObject(ShaderProgram* sp, MeshModel* model);
     ~RenderObject();
     void Render();
     RenderObject* Duplicate();
@@ -41,6 +40,7 @@ public:
     glm::vec3 m_LightColor;
     Light m_Light;
     Material m_Material;
+    MeshModel* m_MeshModel;
   //  std::vector<RenderObject*> m_SubObjects;
     
     

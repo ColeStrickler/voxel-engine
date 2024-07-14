@@ -1,18 +1,99 @@
 #include "model_loader.h"
 
 extern Logger logger;
-extern Renderer renderer;
+
+
+MeshModel::MeshModel()
+{
+}
+
+MeshModel::~MeshModel()
+{
+}
+
+void MeshModel::Render(LightingModel lModel, ShaderProgram* sp)
+{
+    switch (lModel)
+    {
+        case LightingModel::Phong:
+        {
+            RenderPhong(sp);
+            break;
+        }
+        default:
+            logger.Log(LOGTYPE::WARNING, "MeshModel::Render() --> LightingModel lModel is invalid.\n");
+    }
+}
+
+void MeshModel::RenderPhong(ShaderProgram* sp)
+{
+    glBindVertexArray(m_VAO);
+    for (unsigned int i = 0 ; i < m_Meshes.size() ; i++) {
+        unsigned int MaterialIndex = m_Meshes[i].MaterialIndex;
+        assert(MaterialIndex < m_Materials.size());
+        HandlePhongShaders(i, MaterialIndex, sp);
+
+        glDrawElementsBaseVertex(GL_TRIANGLES,
+                                 m_Meshes[i].NumIndices,
+                                 GL_UNSIGNED_INT,
+                                 (void*)(sizeof(unsigned int) * m_Meshes[i].BaseIndex),
+                                 m_Meshes[i].BaseVertex);
+    }
+    glBindVertexArray(0);
+}
+
+void MeshModel::HandlePhongShaders(int MeshIndex, int MaterialIndex, ShaderProgram* sp)
+{
+    
+    
+    
+    auto diff = m_Materials[MaterialIndex].DiffuseMap;
+    if (diff)
+    {
+        diff->SetTextureSlot(0);
+        sp->SetUniform1i("textureObject.diffuseMap", diff->GetTextureSlot());
+        diff->Bind();
+    }
+
+    auto spec = m_Materials[MaterialIndex].SpecularMap;
+    if (spec)
+    {
+        sp->SetUniform1i("textureObject.specularMap", spec->GetTextureSlot());
+        spec->SetTextureSlot(1);
+        spec->Bind();
+    }
+}
 
 void ModelImporter::LoadModel(const std::string &path, unsigned int flags) 
 {
-    Assimp::Importer import;
-    const aiScene *scene = import.ReadFile(path, flags);
+
+    m_CurrentDirectory = path.substr(0, path.find_last_of('/')) + "/";    
+
+
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(path, flags);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
-        logger.Log(LOGTYPE::ERROR, "ModelImporter::LoadModel::ERROR::ASSIMP " + std::string(import.GetErrorString()));
+        logger.Log(LOGTYPE::ERROR, "ModelImporter::LoadModel::ERROR::ASSIMP " + std::string(importer.GetErrorString()));
         return;
     }
-    ProcessNode(scene->mRootNode, scene);
+    InitScene(scene);
+}
+
+MeshModel* ModelImporter::ExportCurrentModel()
+{
+    printf("ModelImporter::ExportCurrentModel()\n");
+    MeshModel* model = new MeshModel();
+
+    model->m_VAO = m_VAO;
+    model->m_Vertices = m_Vertices;
+    model->m_Indices = m_Indices;
+
+    for (int i = 0; i < MODELBUFFERTYPE::NUM_BUFFERS; i++)
+        model->m_Buffers[i] = m_Buffers[i];
+    model->m_Materials = m_Materials;
+    model->m_Meshes = m_Meshes;
+    return model;
 }
 
 /*
@@ -20,141 +101,200 @@ void ModelImporter::LoadModel(const std::string &path, unsigned int flags)
 
     Would make traversing a hierarchical mesh easier
 */
-ModelImporter::ModelImporter(ShaderProgram *sp) : m_ShaderProgram(sp), m_TotalVertices(0)
+ModelImporter::ModelImporter(ShaderProgram *sp) : m_ShaderProgram(sp), m_TotalVertices(0), m_TotalIndices(0)
 {
 }
 ModelImporter::~ModelImporter()
 {
 }
-void ModelImporter::ProcessNode(aiNode *node, const aiScene *scene)
+void ModelImporter::InitScene(const aiScene *scene)
 {
-    for (uint32_t i = 0; i < node->mNumMeshes; i++)
-    {
-       // printf("processing mesh %d/%d\n", i, node->mNumMeshes);
-        aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        m_MeshObjects.push_back(Mesh2Object(mesh, scene));
+    printf("ModelImporter::InitScene()\n");
+    glGenVertexArrays(1, &m_VAO);
+    glBindVertexArray(m_VAO);
+    glGenBuffers(ARRAY_SIZE_IN_ELEMENTS(m_Buffers), m_Buffers);
+
+    m_Meshes.resize(scene->mNumMeshes);
+    m_Materials.resize(scene->mNumMaterials);
+    m_Scene = scene;
+
+    CountVerticesAndIndices(scene);
+    LoadAllMeshes(scene);
+    InitMaterials(scene);
+    PopulateBuffers();
+}
+void ModelImporter::CountVerticesAndIndices(const aiScene *scene)
+{
+    printf("ModelImporter::CountVerticesAndIndices()\n");
+    for (unsigned int i = 0 ; i < m_Meshes.size() ; i++) {
+        m_Meshes[i].MaterialIndex = scene->mMeshes[i]->mMaterialIndex;
+        m_Meshes[i].NumIndices = scene->mMeshes[i]->mNumFaces * 3;
+        m_Meshes[i].BaseVertex = m_TotalVertices;
+        m_Meshes[i].BaseIndex = m_TotalIndices;
+
+        m_TotalVertices += scene->mMeshes[i]->mNumVertices;
+        m_TotalIndices  += m_Meshes[i].NumIndices;
     }
 
-    for (uint32_t i = 0; i < node->mNumChildren; i++)
+    m_Vertices.reserve(m_TotalVertices);
+    m_Indices.reserve(m_TotalIndices);
+}
+void ModelImporter::LoadAllMeshes(const aiScene *scene)
+{
+    printf("ModelImporter::LoadAllMeshes()\n");
+    for (uint32_t i = 0; i < m_Meshes.size(); i++)
     {
-        ProcessNode(node->mChildren[i], scene);
+        printf("Loading mesh %d", i);
+        const aiMesh* mesh = scene->mMeshes[i];
+        InitMesh(i, mesh);
     }
 }
-
-RenderObject *ModelImporter::Mesh2Object(aiMesh *mesh, const aiScene* scene)
+void ModelImporter::InitMesh(uint32_t meshIndex, const aiMesh *mesh)
 {
-    //printf("Mesh2Object()\n");
-    // each vertex is assumed |vec3 position|vec3 normal|vec2 texture coords|
-    size_t floats_per_vertex = 8;
-    size_t vertex_size = sizeof(float) * floats_per_vertex;
-    size_t vertices_size = mesh->mNumVertices * vertex_size;
-    float *vertices = (float*)new char[vertices_size]; // 8 floats per vertex
-    char* v = (char*)vertices;
-
-    m_TotalVertices += mesh->mNumVertices;
+    printf("ModelImporter::InitMesh() %d\n", meshIndex);
+    const aiVector3D zero(0.0f, 0.0f, 0.0f);
+    Vertex v;
+    
     for (uint32_t i = 0; i < mesh->mNumVertices; i++)
     {
-      //  printf("Mesh2Object() vertex %d/%d\n", i, mesh->mNumVertices);
-        float buf[8];
-        //printf("Mesh2Object() vertices\n");
-        buf[0] = mesh->mVertices[i].x;
-        buf[1] = mesh->mVertices[i].y;
-        buf[2] = mesh->mVertices[i].z;
-       // printf("Mesh2Object() normals\n");
+        printf("vertex %d\n", i);
+        auto& pos = mesh->mVertices[i];
+        v.Position.x = pos.x;
+        v.Position.y = pos.y;
+        v.Position.z = pos.z;
+        printf("vertex %d\n", i);
         if (mesh->HasNormals())
         {
-            buf[3] = mesh->mNormals[i].x;
-            buf[4] = mesh->mNormals[i].y;
-            buf[5] = mesh->mNormals[i].z;
+            auto& normal = mesh->mNormals[i];
+            v.Normal.x = normal.x;
+            v.Normal.y = normal.y;
+            v.Normal.z = normal.z;
         }
-        
-      //  printf("Mesh2Object() texture coords\n");
-        if (mesh->mTextureCoords[i])
-        {
-            buf[6] = mesh->mTextureCoords[0][i].x;
-            buf[7] = mesh->mTextureCoords[0][i].y;
-        }
-        else
-        {
-            buf[6] = 0.0f;
-            buf[7] = 0.0f;
-        }
-        memcpy(v, &buf[0], sizeof(buf));
-        v += sizeof(buf);
-    }
-   // printf("Mesh2Object() finished vertex data\n");
-    size_t uints_per_index = 3;
-    size_t index_size = sizeof(unsigned int) * uints_per_index;
-    size_t indices_size = mesh->mNumFaces * index_size;
-    unsigned int* indices = (unsigned int *)new char[indices_size]; // 3 unsigned int indices per index --> see below
-    char* ix = (char*)indices;
-    for (uint32_t i = 0; i < mesh->mNumFaces; i++)
-    {
-        unsigned int buf[3];
-        aiFace face = mesh->mFaces[i];
-
-        /*
-            we should be able to assume this is always 3 if we are using aiProcess_Triangulate flag
-        */
-        for (unsigned int j = 0; j < face.mNumIndices; j++)
-            buf[j] = face.mIndices[j];
-
-        memcpy(ix, &buf[0], sizeof(buf));
-        ix += sizeof(buf);
+        printf("vertex %d\n", i);
+        auto& texcoord =  mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : zero;
+        v.TexCoords.x = texcoord.x;
+        v.TexCoords.y = texcoord.y;
+        m_Vertices.push_back(v);
+        printf("vertex %d\n", i);
     }
 
-    std::vector<Texture*> diff;
-    std::vector<Texture*> spec;
-
-    if (mesh->mMaterialIndex >= 0)
-    {
-        aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-        diff = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
-        spec =loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+    // Populate the index buffer
+    for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+        printf("indices %d\n", i);
+        const aiFace& Face = mesh->mFaces[i];
+        m_Indices.push_back(Face.mIndices[0]);
+        m_Indices.push_back(Face.mIndices[1]);
+        m_Indices.push_back(Face.mIndices[2]);
     }
-
-    VertexBuffer *vb = new VertexBuffer(vertices, vertices_size);
-    IndexBuffer *ib = new IndexBuffer(indices, mesh->mNumFaces*3);
-    VertexArray *va = new VertexArray();
-    vb->SetLayout(new BufferLayout({new BufferElement("pos", ShaderDataType::Float3, false), new BufferElement("norm", ShaderDataType::Float3, false),\
-    new BufferElement("tex", ShaderDataType::Float2, false)}));
-
-    va->AddVertexBuffer(vb);
-    va->AddIndexBuffer(ib);
-    RenderObject *obj = new RenderObject(va, vb, m_ShaderProgram, ib, OBJECTYPE::ComplexModelObject);
-    obj->m_TexturedObject.AddDiffuseMap(m_LoadedTextures[0]);
-    obj->m_TexturedObject.AddSpecularMap(m_LoadedTextures[0]);
-    obj->m_TexturedObject.Shininess = 0.01f;
-    //delete vertices; --> need to track 
-    delete indices;
-    return obj;
+    printf("mesh finished\n");
 }
 
-std::vector<Texture*>  ModelImporter::loadMaterialTextures(aiMaterial *mat, aiTextureType type, const std::string &typeName)
+void ModelImporter::InitMaterials(const aiScene *scene)
 {
-    std::vector<Texture *> textures;
-    for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+    for (uint32_t i = 0; i < scene->mNumMaterials; i++)
     {
-        aiString str;
-        bool skip = false;
-        mat->GetTexture(type, i, &str);
+        const aiMaterial* mat = scene->mMaterials[i];
+        printf("loading material %d\n", i);
+        LoadMaterialTextures(mat, i);
+        // Load Colors() https://github.com/emeiri/ogldev/blob/master/Common/ogldev_basic_mesh.cpp#L576
 
-        std::string path(str.C_Str());
-        for (auto &t : m_LoadedTextures)
-        {
-            if (t->m_FilePath.find(path) != std::string::npos)
-            {
-                textures.push_back(t);
-                skip = true;
-                break;
+    }
+}
+void ModelImporter::LoadMaterialTextures(const aiMaterial *material, int index)
+{
+    LoadDiffuseTexture(material, index);
+    LoadSpecularTexture(material, index);
+}
+
+void ModelImporter::LoadDiffuseTexture(const aiMaterial *material, int index)
+{   printf("LoadDiffuseTexture() %x\n", m_Materials[index]);
+    m_Materials[index].DiffuseMap = nullptr;
+    printf("LoadDiffuseTexture()\n");
+    if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+    { 
+        printf("diffuse > 0\n");
+        aiString Path;
+
+        if (material->GetTexture(aiTextureType_DIFFUSE, 0, &Path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS) {
+            const aiTexture* paiTexture = m_Scene->GetEmbeddedTexture(Path.C_Str());
+            printf("Got Diffuse texture\n");
+            if (paiTexture) {
+                LoadDiffuseTextureEmbedded(paiTexture, index);
+            } else {
+                LoadDiffuseTextureFile(material, Path.C_Str(), index);
             }
         }
-        if (skip)
-            continue;
-        Texture *tex = new Texture(util::getcwd() + MODEL_REL_PATH + str.C_Str(), typeName);
-        m_LoadedTextures.push_back(tex);
-        textures.push_back(tex);
-        //printf("ModelImporter::loadMaterialTextures() successfully loaded %s\n", str.C_Str());
     }
-    return textures;
+     printf("LoadDiffuseTexture() ret\n");
+}
+
+void ModelImporter::LoadDiffuseTextureEmbedded(const aiTexture* AiTexture, int index)
+{
+    m_Materials[index].DiffuseMap = new Texture();
+    int buffer_size = AiTexture->mWidth;
+    m_Materials[index].DiffuseMap->Load(buffer_size, AiTexture->pcData);
+}
+
+void ModelImporter::LoadDiffuseTextureFile(const aiMaterial *material, const std::string& file, int index)
+{
+    printf("loading diffuse from file\n");
+    m_Materials[index].DiffuseMap = new Texture(m_CurrentDirectory + file, "diff");
+}
+
+void ModelImporter::LoadSpecularTexture(const aiMaterial *material, int index)
+{  
+    m_Materials[index].SpecularMap = nullptr;
+    if (material->GetTextureCount(aiTextureType_SHININESS) > 0)
+    {
+        printf("got specular > 0\n");
+        aiString Path;
+
+        if (material->GetTexture(aiTextureType_SHININESS, 0, &Path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS) {
+            const aiTexture* paiTexture = m_Scene->GetEmbeddedTexture(Path.C_Str());
+
+            if (paiTexture) {
+                LoadSpecularTextureEmbedded(paiTexture, index);
+            } else {
+                LoadSpecularTextureFile(material, Path.C_Str(), index);
+            }
+        }
+    }
+     printf("LoadSpecularTexture() ret\n");
+}
+
+void ModelImporter::LoadSpecularTextureEmbedded(const aiTexture *AiTexture, int index)
+{
+    m_Materials[index].SpecularMap = new Texture();
+    int buffer_size = AiTexture->mWidth;
+    m_Materials[index].SpecularMap->Load(buffer_size, AiTexture->pcData);
+}
+
+void ModelImporter::LoadSpecularTextureFile(const aiMaterial *material, const std::string &file, int index)
+{
+    m_Materials[index].SpecularMap = new Texture(m_CurrentDirectory + file, "spec");
+}
+
+void ModelImporter::PopulateBuffers()
+{
+    glBindBuffer(GL_ARRAY_BUFFER, m_Buffers[VERTEX_BUFFER]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Buffers[INDEX_BUFFER]);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(m_Vertices[0]) * m_Vertices.size(), &m_Vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_Indices[0]) * m_Indices.size(), &m_Indices[0], GL_STATIC_DRAW);
+    
+    size_t NumFloats = 0;
+
+    glEnableVertexAttribArray(POSITION_LOCATION);
+    glVertexAttribPointer(POSITION_LOCATION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(NumFloats * sizeof(float)));
+    NumFloats += 3;
+
+    glEnableVertexAttribArray(NORMAL_LOCATION);
+    glVertexAttribPointer(NORMAL_LOCATION, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(NumFloats * sizeof(float)));
+    NumFloats += 3;
+
+    glEnableVertexAttribArray(TEX_COORD_LOCATION);
+    glVertexAttribPointer(TEX_COORD_LOCATION, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(NumFloats * sizeof(float)));
+    
+
+    
 }

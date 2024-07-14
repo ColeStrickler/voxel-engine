@@ -121,7 +121,7 @@ void main()
         case 1: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;
         case 2: FragColor = vec4(getTextureColor(), 1.0); break;
         case 3: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;
-        case 5: FragColor = vec4(getTextureColor(), 1.0); break;
+        case 5: FragColor = vec4(vec3(texture(textureObject.diffuseMap, TexCoords)), 1.0); break;
         default: FragColor = vec4(1.0, 1.0, 1.0, 1.0); break;
     }
 }

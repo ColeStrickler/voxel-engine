@@ -24,6 +24,7 @@ static std::string ExtractFileExtension(const std::string& filename)
 class Texture
 {
 public:
+	Texture() = default;
 	Texture(const std::string& path, const std::string& name, unsigned int min_filter = GL_REPEAT, unsigned int mag_filter = GL_REPEAT,
 		unsigned int texture_wrap = GL_CLAMP_TO_EDGE, unsigned int texture_storage_format = GL_RGB, 
 		unsigned int texture_data_format = GL_RGB);
@@ -32,7 +33,7 @@ public:
 	void Bind() const;
 	void Unbind();
 
-
+	void Load(uint32_t BufferSize, void* data);
 	inline int GetWidth() const { return m_Width; };
 	inline int GetHeight() const { return m_Height; };
 	inline int GetTextureSlot() const { return m_Slot; };
@@ -43,7 +44,7 @@ private:
 	void HandleFileTypeLoadSpecifics();
 	void HandleLoadJPG();
 	void HandleLoadPNG();
-
+	void LoadInternal(void* pImageData);
 	unsigned int m_RendererID;
 	
 	std::string m_Name;

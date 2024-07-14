@@ -19,6 +19,13 @@ RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp,
    // m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
+RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(OBJECTYPE::ComplexModelObject), m_VertexArray(NULL), m_VertexBuffer(NULL),\
+    m_IndexBuffer(NULL), m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false)
+{
+    m_MeshModel = model;
+    m_ShaderProgram =sp;
+}
+
 RenderObject::~RenderObject()
 {
 
@@ -26,9 +33,10 @@ RenderObject::~RenderObject()
 
 void RenderObject::Render()
 {
-
+    
     m_ShaderProgram->Bind();
-    m_VertexArray->Bind();
+    if (m_VertexArray != nullptr)
+        m_VertexArray->Bind();
 
 
     // this could be placed much better for optimization
@@ -71,6 +79,23 @@ void RenderObject::Rotate(const glm::vec3 &rotation_axis, float angle)
 
 void RenderObject::DrawCall() const
 {
+    if (m_ObjectType == OBJECTYPE::ComplexModelObject)
+    {
+        if (m_bWireFrame)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            m_MeshModel->Render(renderer.GetLightingModel(), m_ShaderProgram);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        else
+             m_MeshModel->Render(renderer.GetLightingModel(), m_ShaderProgram);
+       
+        return;
+    }
+
+
+
+
     int count = m_VertexArray->GetCount();
     if (m_bUseIndexBuffer)
     {
@@ -121,7 +146,7 @@ void printVec(const glm::vec3& vec)
 
 void RenderObject::HandlePhongShaders()
 {
-    Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
+   // Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
     switch(m_ObjectType)
     {
         case OBJECTYPE::PointLightSource:
@@ -159,15 +184,8 @@ void RenderObject::HandlePhongShaders()
         }
         case OBJECTYPE::ComplexModelObject:
         {
-            auto camera_pos = gl.GetCamera()->GetPosition();
-            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
             m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-            // lighting uniforms should already be set because we use the same shader for both light sources and other objects
-
-            m_TexturedObject.Bind();
-            m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
-            m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
-            m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+            break; // rest  set in draw call
         }
         default:
             break;
