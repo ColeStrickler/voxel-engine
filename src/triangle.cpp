@@ -19,6 +19,7 @@
 #include "renderer.h"
 #include "util.h"
 #include "model_loader.h"
+#include "block.h"
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
 extern GUI GUI_Manager;
@@ -81,20 +82,25 @@ int main()
 
 
 
+    auto dirt_vertices = Block::GenBlockVertices(BlockType::Dirt);
+    for (auto& v: dirt_vertices)
+        PrintBlockVertex(v);
+
 
     BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-         new BufferElement("NORMALS", ShaderDataType::Float3, false),
-          new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
+          new BufferElement("NORMALS", ShaderDataType::Float3, false),new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
     VertexArray* tva = new VertexArray;
-    VertexBuffer* tex_vbo = new VertexBuffer(tvertices, sizeof(tvertices));
+    IndexBuffer* iva = new IndexBuffer((uint32_t*)cubeIndices.data(), BLOCK_INDICES_COUNT);
+    VertexBuffer* tex_vbo = new VertexBuffer((float*)dirt_vertices.data(), BLOCK_VERTICES_SIZE);
     tex_vbo->SetLayout(tex_layout);
     tva->AddVertexBuffer(tex_vbo);
-    RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, OBJECTYPE::TexturedObject);
+    tva->AddIndexBuffer(iva);
+    RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, iva, OBJECTYPE::TexturedObject);
     l_obj->SetPosition({0.0, 0.0, 0.0});
     
 
-    Texture* spec = new Texture(util::getcwd()+"/src/textures/container2_specular.png", "spec");
-    Texture* diff = new Texture(util::getcwd()+"/src/textures/container2.png", "diff");
+    Texture* spec = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
+    Texture* diff = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
     t_obj->m_TexturedObject.AddDiffuseMap(diff);
     t_obj->m_TexturedObject.AddSpecularMap(spec);
     t_obj->m_TexturedObject.Shininess = 64.0f;
@@ -104,9 +110,9 @@ int main()
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
 
-    for (int i = -0; i < 20; i += 1)
+    for (int i = -20; i < 20; i += 4)
     {
-        for (int j = -0; j < 20; j += 1)
+        for (int j = -20; j < 20; j += 4)
         {
             auto obj = l_obj->Duplicate();
             obj->Translate({1.0*i, 5.0f, 1.0*j});
@@ -116,16 +122,22 @@ int main()
     }
 
 
-
-    for (int i = -50; i < 50; i += 40)
+    for (int i = -0; i < 1; i += 1)
     {
-        for (int j = -50; j < 50; j += 40)
+        for (int j = -0; j < 1; j += 1)
         {
-            auto obj = t_obj->Duplicate();
-            obj->Translate({1.0*i, 0.0f, 1.0*j});
-            renderer.AddRenderObject(obj);
+            for (int x = 0; x < 1; x++)
+            {
+                
+            }
         }
+
     }
+                auto xobj = t_obj->Duplicate();
+                xobj->Translate({1.0f, 0.0f, 1.0f});
+                renderer.AddRenderObject(xobj);
+    
+
     
     
 
@@ -154,17 +166,17 @@ int main()
     // /    printf("Could not bind texture1\n");
     // /}
 
-    ModelImporter* import = new ModelImporter(&shaderProgram);
-    import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
-    auto mesh_model = import->ExportCurrentModel();
-    auto obj = new RenderObject(&shaderProgram, mesh_model);
-    for (int i = 0; i < 25; i++)
-    {
-        auto xobj = obj->Duplicate();
-        xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
-        xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
-        renderer.AddRenderObject(xobj);
-    }
+    //ModelImporter* import = new ModelImporter(&shaderProgram);
+    //import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
+    //auto mesh_model = import->ExportCurrentModel();
+    //auto obj = new RenderObject(&shaderProgram, mesh_model);
+    //for (int i = 0; i < 25; i++)
+    //{
+    //    auto xobj = obj->Duplicate();
+    //    xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
+    //    xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
+    //    renderer.AddRenderObject(xobj);
+    //}
 
     
 

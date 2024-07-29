@@ -159,13 +159,12 @@ void RenderObject::HandlePhongShaders()
             m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
             m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
             // lighting uniforms should already be set because we use the same shader for both light sources and other objects
-
             m_TexturedObject.Bind();
             m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
             m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
             m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
             m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
-            m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 1);
+            m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 0);
         }
         case OBJECTYPE::ComplexModelObject:
         {

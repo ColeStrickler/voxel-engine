@@ -18,7 +18,7 @@ Texture::Texture(const std::string& path, const std::string& name, unsigned int 
 	m_LocalBuffer = stbi_load(m_FilePath.c_str(), &m_Width, &m_Height, &m_BPP, 0);
      if (!m_LocalBuffer)
     {
-		logger.Log(LOGTYPE::ERROR, "Texture::Texture() Failed to load texture from file.");
+		logger.Log(LOGTYPE::ERROR, "Texture::Texture() Failed to load texture from file: " + path);
 		size_t backSlashPos;
 		while ((backSlashPos = m_FilePath.find('\\')) != std::string::npos)
 		{
@@ -119,6 +119,7 @@ void Texture::LoadInternal(void *pImageData)
 {
 	glGenTextures(1, &m_RendererID);
 	glBindTexture(GL_TEXTURE_2D, m_RendererID);
+	printf("Texture Width: %d, Texture Height: %d\n", m_Width, m_Height);
 
     switch (m_BPP) {
         case 1:
@@ -146,11 +147,14 @@ void Texture::LoadInternal(void *pImageData)
             logger.Log(LOGTYPE::WARNING, "Texture::LoadInternal --> support for texture BPP " + std::to_string(m_BPP) + " not supported\n");
     }
 	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	
     glBindTexture(GL_TEXTURE_2D, 0);
 }
