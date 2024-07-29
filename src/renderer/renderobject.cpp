@@ -1,6 +1,7 @@
 #include "renderobject.h"
 #include "renderer.h"
 #include "logger.h"
+#include "profiler.h"
 extern Renderer renderer;
 extern GLManager gl;
 extern Logger logger;

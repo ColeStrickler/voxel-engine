@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "material.h"
 #include "model_loader.h"
+#include "profiler.h"
 
 #define STENCIL_OUTLINE_SCALE_FACTOR (1.20f)
 #define STENCIL_OUTLINE_INV_SCALE_FACTOR (1.0f/STENCIL_OUTLINE_SCALE_FACTOR)

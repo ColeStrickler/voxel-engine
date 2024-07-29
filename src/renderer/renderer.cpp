@@ -32,6 +32,8 @@ void Renderer::AddRenderObject(RenderObject *obj)
 
 void Renderer::RenderAllObjects()
 {
+    EMIT_PROFILE_TOKEN
+
     std::unique_lock lock(m_RenderLock);
 
     HandleLightSources();
