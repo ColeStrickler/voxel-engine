@@ -99,6 +99,7 @@ void RenderObject::DrawCall() const
     int count = m_VertexArray->GetCount();
     if (m_bUseIndexBuffer)
     {
+        printf("Count %d\n", count);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
     }
     else

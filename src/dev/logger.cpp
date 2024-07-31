@@ -17,7 +17,7 @@ Logger::~Logger()
 
 void Logger::WriteLogs()
 {
-
+    EMIT_PROFILE_TOKEN
     bool written_outfile = false;
     for (auto& t: m_LogTargets)
     {

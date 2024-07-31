@@ -19,10 +19,11 @@
 #include "renderer.h"
 #include "util.h"
 #include "model_loader.h"
-#include "block.h"
+#include "chunk.h"
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
 extern GUI GUI_Manager;
+extern Profiler profiler;
 extern Renderer renderer;
 GLManager gl;
 // settings
@@ -46,28 +47,55 @@ int main()
     if (vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
         logger.Log(LOGTYPE::ERROR, vertex_shader.FetchLog());
 
+    Shader chunk_vertex_shader(util::getcwd() + "/src/shaders/chunkVertex.glsl", GL_VERTEX_SHADER);
+    if (chunk_vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
+        logger.Log(LOGTYPE::ERROR, chunk_vertex_shader.FetchLog());
+    
     Shader fragment_shader(util::getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
     if (fragment_shader.CheckError() != ShaderError::NO_ERROR_OK)
         logger.Log(LOGTYPE::ERROR, fragment_shader.FetchLog());
+
+
 
 
     // check for shader compile errors
     ShaderProgram shaderProgram;
     shaderProgram.AddShader(&vertex_shader);
     shaderProgram.AddShader(&fragment_shader);
-;
+
+
+    ShaderProgram chunkShaderProgram;
+    chunkShaderProgram.AddShader(&chunk_vertex_shader);
+    chunkShaderProgram.AddShader(&fragment_shader);
+
+
     // glAttachShader(shaderProgram, vertexShader);
     // glAttachShader(shaderProgram, fragmentShader);
     renderer.SetLightingModel(LightingModel::Phong);
 
 
-    if (!shaderProgram.Compile())
+
+    if (!shaderProgram.Compile() || !chunkShaderProgram.Compile())
     {
         return -1;
     }
-  
+   
 
 
+
+
+
+    for (int i = 0; i < 16; i++)
+    {
+        for (int j = 0; j < 16; j++)
+        {
+            auto chunk = new Chunk(i, j, &chunkShaderProgram);
+            auto chunkObj = chunk->GetRenderObject();
+            renderer.AddRenderObject(chunkObj);
+        }
+    }
+    
+     
     BufferLayout* lighting_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
          new BufferElement("NORMALS", ShaderDataType::Float3, false),
           new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
@@ -81,7 +109,7 @@ int main()
     l_obj->m_Light.direction = glm::vec3({0.0, 0.0, 0.0});
 
 
-
+    printf("hjere!\n");
     auto dirt_vertices = Block::GenBlockVertices(BlockType::Dirt);
     for (auto& v: dirt_vertices)
         PrintBlockVertex(v);
@@ -96,8 +124,8 @@ int main()
     tva->AddVertexBuffer(tex_vbo);
     tva->AddIndexBuffer(iva);
     RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, iva, OBJECTYPE::TexturedObject);
-    l_obj->SetPosition({0.0, 0.0, 0.0});
-    
+    //l_obj->SetPosition({0.0, 0.0, 0.0});
+    renderer.AddRenderObject(l_obj);
 
     Texture* spec = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
     Texture* diff = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
@@ -105,7 +133,7 @@ int main()
     t_obj->m_TexturedObject.AddSpecularMap(spec);
     t_obj->m_TexturedObject.Shininess = 64.0f;
 
-
+    
 
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
@@ -118,30 +146,29 @@ int main()
             obj->Translate({1.0*i, 5.0f, 1.0*j});
             renderer.AddRenderObject(obj);
         }
-
     }
 
 
-    for (int i = -0; i < 1; i += 1)
-    {
-        for (int j = -0; j < 1; j += 1)
-        {
-            for (int x = 0; x < 1; x++)
-            {
+    //for (int i = 0; i < 16; i += 1)
+    //{
+    //    for (int j = 0; j < 16; j += 1)
+    //    {
+    //        for (int z = 0; z > -64; z -= 1)
+    //        {
+    //            auto xobj = t_obj->Duplicate();
+    //            xobj->Translate({i*1.0f, z*1.0f, j*1.0f});
+    //            renderer.AddRenderObject(xobj);
+    //        }
+    //    }
+    //    
+    //}
                 
-            }
-        }
-
-    }
-                auto xobj = t_obj->Duplicate();
-                xobj->Translate({1.0f, 0.0f, 1.0f});
-                renderer.AddRenderObject(xobj);
     
 
     
     
 
-
+    
 
     // va.AddIndexBuffer(ibo);
    //Texture tex(getcwd() + "/src/textures/container.jpg", "container");
@@ -166,17 +193,17 @@ int main()
     // /    printf("Could not bind texture1\n");
     // /}
 
-    //ModelImporter* import = new ModelImporter(&shaderProgram);
-    //import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
-    //auto mesh_model = import->ExportCurrentModel();
-    //auto obj = new RenderObject(&shaderProgram, mesh_model);
-    //for (int i = 0; i < 25; i++)
-    //{
-    //    auto xobj = obj->Duplicate();
-    //    xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
-    //    xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
-    //    renderer.AddRenderObject(xobj);
-    //}
+    ModelImporter* import = new ModelImporter(&shaderProgram);
+    import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
+    auto mesh_model = import->ExportCurrentModel();
+    auto obj = new RenderObject(&shaderProgram, mesh_model);
+    for (int i = 0; i < 2; i++)
+    {
+        auto xobj = obj->Duplicate();
+        xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
+        xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
+        renderer.AddRenderObject(xobj);
+    }
 
     
 
@@ -195,10 +222,12 @@ int main()
 
    
     
+    //glEnable(GL_CULL_FACE); // Enable face culling
+    //glCullFace(GL_BACK);    // Cull back faces (or GL_FRONT to cull front faces)
+    //glFrontFace(GL_CCW);    // Set the front face direction (counter-clockwise is default)
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
-        
         gl.PerFrame();
         logger.WriteLogs();
         // model = glm::rotate(model, .1f, );
@@ -258,7 +287,7 @@ int main()
        // glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // glBindVertexArray(0); // no need to unbind it every time
-
+        
         
         GUI_Manager.RenderGUI();
         
@@ -274,8 +303,13 @@ int main()
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
+
+        auto swapBufferToken = new PROFILER_TOKEN("glfwSwapBuffers");
         glfwSwapBuffers(gl.GetWindow());
+        delete swapBufferToken;
+        auto pollEventsToken = new PROFILER_TOKEN("glfwPollEvents");
         glfwPollEvents();
+        delete pollEventsToken;
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:

@@ -33,6 +33,7 @@ void VertexArray::AddIndexBuffer(IndexBuffer* index_buffer)
     this->Bind();
     index_buffer->Bind();
     m_IndexBuffer = index_buffer;
+    SetCount(m_IndexBuffer->m_Count);
 }
 
 void VertexArray::AddVertexBuffer(VertexBuffer* vertex_buffer)

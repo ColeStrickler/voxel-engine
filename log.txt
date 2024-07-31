@@ -101,16 +101,9 @@
 [INFO]: RenderObject::Duplicate() --> duplicated object.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: Texture::Texture() successfully loaded /home/cole/Documents/voxel-engine/include/dev/models/mech_tank/textures/Cable_baseColor.jpeg
+[INFO]: Texture::Texture() successfully loaded /home/cole/Documents/voxel-engine/include/dev/models/mech_tank/textures/material_baseColor.jpeg
+[INFO]: Texture::Texture() successfully loaded /home/cole/Documents/voxel-engine/include/dev/models/mech_tank/textures/Body_baseColor.jpeg
+[INFO]: ModelImporter::LoadDiffuseTexture() --> material 3 has no diffuse texture.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
-[INFO]: Added new RenderObject to Renderer.
-[INFO]: RenderObject::Duplicate() --> duplicated object.
-[INFO]: Added new RenderObject to Renderer.
-[INFO]: RenderObject::Duplicate() --> duplicated object.
-[INFO]: Added new RenderObject to Renderer.
-[INFO]: RenderObject::Duplicate() --> duplicated object.
-[INFO]: Added new RenderObject to Renderer.
-[INFO]: RenderObject::Duplicate() --> duplicated object.
-[INFO]: Added new RenderObject to Renderer.
-[INFO]: RenderObject::Duplicate() --> duplicated object.
-[INFO]: Added new RenderObject to Renderer.

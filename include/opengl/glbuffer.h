@@ -149,9 +149,10 @@ public:
     void Delete();
     void Bind() const;
     void Unbind() const;
+    uint32_t m_Count;
 private:
     unsigned int m_BufferId;
-    uint32_t m_Count;
+    
 };
 
 

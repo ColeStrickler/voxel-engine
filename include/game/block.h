@@ -63,11 +63,16 @@ class Block
 {
 public:
     Block();
+    Block(BlockType type);
     ~Block();
-
+    inline bool isActive() const {return m_bIsActive;};
+    bool setActive(bool bActive);
+    inline void setType(BlockType type) {m_Type = type;};
+    inline BlockType getBlockType() const {return m_Type;}
     static std::vector<BlockVertex> GenBlockVertices(BlockType blocktype);
     static std::vector<std::pair<float,float>> GenTextureCoordBlockFace(std::pair<uint32_t, uint32_t> TextureAtlasIndex);
 private:
+    bool m_bIsActive;
     BlockType m_Type;
 };
 

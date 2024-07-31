@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include "profiler.h"
 #define LOGFILE "log.txt"
 
 enum LOGLEVEL

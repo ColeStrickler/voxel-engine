@@ -19,7 +19,8 @@ enum OBJECTYPE
     DirectionalLightSource,
     TextObject,
     ComplexModelObject,
-    OutlineObject
+    OutlineObject,
+    ChunkMesh
 };
 
 

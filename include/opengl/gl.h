@@ -122,6 +122,7 @@ private:
     void HandleShowGlStats();
     void DisplayGlStats();
     void UpdateStats();
+    void HandleDisplayProfilerStatistics();
     std::unordered_map<int, int> m_KeyPressed;
     bool m_ViewLock;
     bool m_bCursorHidden;

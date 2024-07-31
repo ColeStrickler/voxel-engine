@@ -36,6 +36,7 @@ GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(st
     RegisterKeyCallback(GLFW_KEY_S, std::bind(&Camera::CameraHandleKey_S, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_D, std::bind(&Camera::CameraHandleKey_D, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_ESCAPE, std::bind(&GLManager::HandleToggleCursorHidden, this));
+    RegisterKeyCallback(GLFW_KEY_F3, std::bind(&GLManager::HandleDisplayProfilerStatistics, this));
     RegisterKeyCallback(GLFW_KEY_F2, std::bind(&GLManager::HandleShowGlStats, this));
     RegisterKeyCallback(GLFW_KEY_F1, std::bind(&GLManager::HandleToggleCursorVisible, this));
     glfwSetCursorPosCallback(window, MouseScrollCallback);
@@ -91,6 +92,7 @@ void GLManager::RegisterKeyCallback(int key, std::function<void()> callback)
 
 void GLManager::PerFrame()
 {
+    EMIT_PROFILE_TOKEN
     glfwPollEvents();
     for (auto &e : m_KeyPressed)
     {
@@ -139,6 +141,7 @@ void GLManager::GLFW_Init()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, (GLFWframebuffersizefun)SetWindowSize);
+    glfwSwapInterval(0);
 }
 
 void GLManager::GLAD_Init()
@@ -243,6 +246,16 @@ void GLManager::DisplayGlStats()
     
 }
 
+
+void GLManager::HandleDisplayProfilerStatistics()
+{
+    auto KEYSTATUS = m_KeyPressed[GLFW_KEY_F3];
+    if (KEYSTATUS == GLFW_PRESS || KEYSTATUS == GLFW_REPEAT) 
+    {
+         GUI_Manager.m_bShowProfilerStatistics = true;
+    }
+}
+
 void GLManager::UpdateStats()
 {
     m_GlStats.m_PrevTimes.push_back(m_DeltaTime);
@@ -255,6 +268,8 @@ void GLManager::UpdateStats()
     times /= 5;
     m_GlStats.m_FramesPerSecond = 1.0f / times;
 }
+
+
 
 Camera::Camera(float screen_height, float screen_width, float speed, GLManager *manager) : m_Manager(manager)
 {

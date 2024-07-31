@@ -219,7 +219,6 @@ bool ShaderProgram::Compile()
         printf("Error\n");
         return false;
     }
-    printf("here no error\n");
     return true;
 }
 

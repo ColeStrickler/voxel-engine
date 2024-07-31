@@ -7,8 +7,18 @@ Block::Block()
 {
 }
 
+Block::Block(BlockType type) : m_Type(type)
+{
+    setActive(false);
+}
+
 Block::~Block()
 {
+}
+
+bool Block::setActive(bool bActive)
+{
+    m_bIsActive = bActive;
 }
 
 std::vector<BlockVertex> Block::GenBlockVertices(BlockType blocktype)
@@ -108,7 +118,7 @@ std::vector<std::pair<float,float>> Block::GenTextureCoordBlockFace(std::pair<ui
     float ymin =   ((row-1.0f)*TEXTURE_WIDTH)/TEXTURE_ATLAS_HEIGHT;
     float xmax =   ((col+1.0f)*TEXTURE_WIDTH)/TEXTURE_ATLAS_WIDTH;
     float ymax =   ((row)*TEXTURE_WIDTH)/TEXTURE_ATLAS_HEIGHT;
-    printf("%.3f,%.3f,%.3f,%.3f\n", xmin, ymin, xmax, ymax);
+    //printf("%.3f,%.3f,%.3f,%.3f\n", xmin, ymin, xmax, ymax);
     // top left, top right, bottom left, bottom right, 0.0f is bottom
     std::vector<std::pair<float, float>> ret = {{xmin,ymax},{xmax,ymax},{xmin,ymin},{xmax,ymin}};
     return ret;

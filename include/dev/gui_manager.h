@@ -6,10 +6,11 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <thread>
+#include <algorithm>
 #include "logger.h"
 #include "material.h"
 #include "renderobject.h"
-
+#include "profiler.h"
 
 
 struct ObjectSelectionOptions
@@ -43,6 +44,9 @@ public:
     void HandleObjectSelection(RenderObject* obj);
     void RegisterLogTarget(Logger* logger);
     
+
+
+    bool m_bShowProfilerStatistics;
 private:
     /* logging functionality */
     static std::thread m_LogThread;
@@ -51,9 +55,12 @@ private:
     static bool m_bRunLogThread;
     void DisplayLogs();
 
-    ObjectSelectionOptions m_ObjectOptions;
+    void DisplayProfilerStatistics();
+    
+    
 
     /* object selection functionality */
+    ObjectSelectionOptions m_ObjectOptions;
     RenderObject* m_CurrentObject;
     void DisplayObjectOptions();
     void HandleObjectPositionOptions();

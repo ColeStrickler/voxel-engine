@@ -3,6 +3,7 @@
 GUI GUI_Manager;
 extern Renderer renderer;
 extern Logger logger;
+extern Profiler profiler;
 LogTarget GUI::m_LogTarget;
 bool GUI::m_bRunLogThread;
 std::thread GUI::m_LogThread;
@@ -53,12 +54,15 @@ GUI::~GUI()
 
 void GUI::RenderGUI()
 {
+    EMIT_PROFILE_TOKEN
+    DisplayProfilerStatistics();
     DisplayObjectOptions();
     DisplayLogs();
 }
 
 void GUI::Begin()
 {
+    EMIT_PROFILE_TOKEN
     ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -67,6 +71,7 @@ void GUI::Begin()
 
 void GUI::End()
 {
+    EMIT_PROFILE_TOKEN
    // ImGui::End();
     // Renders the ImGUI elements
 	ImGui::Render();
@@ -122,6 +127,58 @@ void GUI::DisplayLogs()
         ImGui::Text("%s", log.c_str());
     }
     ImGui::End();
+}
+
+void GUI::DisplayProfilerStatistics()
+{
+    EMIT_PROFILE_TOKEN
+
+    if (!m_bShowProfilerStatistics)
+        return;
+
+    std::vector<std::pair<std::string, double>> entries(profiler.m_TimeAccounting.begin(), profiler.m_TimeAccounting.end());
+    std::sort(entries.begin(), entries.end(),
+        [](const std::pair<std::string, double>& a, const std::pair<std::string, double>& b) {
+            return a.second < b.second; // Ascending order by value
+        });
+
+    bool open = true;
+    ImGui::OpenPopup("Function Profiling Statistics");
+
+
+    if (ImGui::BeginPopupModal("Function Profiling Statistics", &open, ImGuiWindowFlags_None)) {
+
+         ImGui::SetWindowSize(ImVec2(600, 400));
+        ImGui::Columns(2, "myColumns", true); // true: Show column borders
+
+        ImGui::SetColumnWidth(0, 300.0f); // Set width of the first column
+        ImGui::SetColumnWidth(1, 300.0f); // Set width of the second column
+
+
+        ImGui::Text("Function");
+        ImGui::NextColumn();
+        ImGui::Text("Time (s)");
+        ImGui::NextColumn();
+        ImGui::Separator();
+
+
+        for (int i = 0; i < std::min(size_t(50), entries.size()); i++)
+        {
+            ImGui::Text(entries[i].first.c_str());
+            ImGui::NextColumn();
+            ImGui::Text("%.4f", entries[i].second);
+            ImGui::NextColumn();
+        }
+        ImGui::Columns(1); // Resets the columns to default single column layout
+
+        if (ImGui::Button("Close")) {
+            ImGui::CloseCurrentPopup();
+            m_bShowProfilerStatistics = false;
+        }
+
+        ImGui::EndPopup();
+    }
+  
 }
 
 void GUI::DisplayObjectOptions()
