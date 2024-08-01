@@ -22,6 +22,9 @@
 #define DEFAULT_OPENGL_VERSION_MAJOR 4
 #define DEFAULT_OPENGL_VERSION_MINOR 5
 #define MOUSE_CLICK_OBJ_SEL_THRESHOLD 10.0f
+
+static float ViewDistance = 256.0f;
+
 class GLManager;
 
 typedef struct GlStats

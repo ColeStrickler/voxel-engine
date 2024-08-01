@@ -39,13 +39,25 @@ void Renderer::RenderAllObjects()
 
     HandleLightSources();
     
-
-    int i = m_RenderObjects.size();
-    for (int x = 0; x < i;  x++)
+    auto it = m_RenderObjects.begin();
+    while (it  != m_RenderObjects.end())
     {
-        auto& obj = m_RenderObjects[x];
-        obj->Render();
+        auto obj = *it;
+        if (obj->Render())
+        {
+            it = m_RenderObjects.erase(it); // marked for deletion
+            delete obj;
+
+        }
+        else
+            it++;
     }
+    //int i = m_RenderObjects.size();
+    //for (int x = 0; x < i;  x++)
+    //{
+    //    auto& obj = m_RenderObjects[x];
+    //    obj->Render();
+    //}
     lock.unlock();
 }
 

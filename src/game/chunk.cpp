@@ -1,13 +1,41 @@
 #include "chunk.h"
+extern GLManager gl;
+extern Logger logger;
+extern Renderer renderer;
+
+
+std::condition_variable ChunkManager::m_WorkerCV;
+std::mutex ChunkManager::m_WorkerLock;
+std::mutex ChunkManager::m_FinishedItemsLock;
+std::queue<ChunkWorkItem*> ChunkManager::m_WorkItems;
+std::queue<Chunk*> ChunkManager::m_FinishedWork;
+ShaderProgram* ChunkManager::m_ChunkShader;
+Texture* ChunkManager::m_TextureAtlasDiffuse;
+Texture* ChunkManager::m_TextureAtlasSpecular;
 
 Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z)
 {
+    
     GenerateChunk();
     GenerateChunkMesh(sp);
-}   
+}
+
+Chunk::Chunk(int x, int z, ShaderProgram* sp, bool delay): m_xCoord(x), m_zCoord(z)
+{
+    GenerateChunk();
+
+    if (!delay)
+        GenerateChunkMesh(sp);
+}
 
 Chunk::~Chunk()
 {
+   // delete m_RenderObj; // renderObj deletes VertexArray deletes (indexBuffer, vertexBuffer)
+}
+
+glm::vec2 Chunk::GetPosition()
+{
+    return glm::vec2(static_cast<float>(m_xCoord), static_cast<float>(m_zCoord));
 }
 
 void Chunk::GenerateChunkMesh(ShaderProgram* sp)
@@ -16,9 +44,9 @@ void Chunk::GenerateChunkMesh(ShaderProgram* sp)
     BufferLayout* vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
           new BufferElement("faceBlockType", ShaderDataType::Int, false),  new BufferElement("reserved", ShaderDataType::Int, false),\
            new BufferElement("texCoord", ShaderDataType::Float2, false)});
-
     m_IB = new IndexBuffer(m_Indices.data(), m_Indices.size());
     m_VB = new VertexBuffer((float*)m_Vertices.data(), m_Vertices.size()*sizeof(ChunkVertex));
+    
     m_VB->SetLayout(vertex_layout);
     m_VA = new VertexArray();
     m_VA->AddVertexBuffer(m_VB);
@@ -114,4 +142,362 @@ void Chunk::GenerateChunk()
    
 }
 
+ChunkManager::ChunkManager()
+{
 
+    for (int i = 0; i < CHUNK_MANAGER_THREADCOUNT; i++)
+    {
+        m_WorkerThreads[i] = std::thread(ChunkWorkerThread);
+    }
+    
+
+
+    Shader chunk_vertex_shader(util::getcwd() + "/src/shaders/chunkVertex.glsl", GL_VERTEX_SHADER);
+    if (chunk_vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
+        logger.Log(LOGTYPE::ERROR, chunk_vertex_shader.FetchLog());
+    
+    Shader fragment_shader(util::getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
+    if (fragment_shader.CheckError() != ShaderError::NO_ERROR_OK)
+        logger.Log(LOGTYPE::ERROR, fragment_shader.FetchLog());
+
+    
+    m_ChunkShader = new ShaderProgram();
+    m_ChunkShader->AddShader(&chunk_vertex_shader);
+    m_ChunkShader->AddShader(&fragment_shader);
+    if (!m_ChunkShader->Compile())
+    {
+        logger.Log(LOGTYPE::ERROR, "ChunkManager::ChunkManager() --> Unable to compile Chunk Shader.");
+        logger.Log(LOGTYPE::ERROR, "Error #" + std::to_string(m_ChunkShader->CheckError()));
+        while(1);
+    }
+    m_TextureAtlasSpecular = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
+    m_TextureAtlasDiffuse = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
+
+
+    // can see CHUNK_DISTANCE each way
+    auto chunk = new Chunk(0, 0, m_ChunkShader); 
+    AddChunkToRenderer(chunk);
+    m_ActiveChunks.push_back(chunk);
+
+    for (int x = -CHUNK_DISTANCE; x < CHUNK_DISTANCE; x++)
+    {
+        for (int z = -CHUNK_DISTANCE; z < CHUNK_DISTANCE; z++)
+        {
+            ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+            std::unique_lock lock(m_WorkerLock);
+            m_WorkItems.push(work);
+            m_WorkerCV.notify_one();
+            lock.unlock();
+        }
+    }
+
+}
+
+
+/*
+    We can probably reduce this overhead  by binding the texture once in the renderer
+*/
+void ChunkManager::AddChunkToRenderer(Chunk *chunk)
+{
+    auto renderObj = chunk->GetRenderObject();
+    renderObj->m_TexturedObject.AddDiffuseMap(m_TextureAtlasDiffuse);
+    renderObj->m_TexturedObject.AddSpecularMap(m_TextureAtlasSpecular);
+    renderObj->m_TexturedObject.Shininess = 64.0f;
+    renderer.AddRenderObject(renderObj);
+}
+
+void ChunkManager::ChunkWorkerThread()
+{
+
+    //logger.Log(LOGTYPE::INFO, "ChunkManager::ChunkWorkerThread()");
+    while(1)
+    {
+        std::unique_lock lock(m_WorkerLock);
+
+        m_WorkerCV.wait(lock, []{return m_WorkItems.size() > 0;});
+        auto work = m_WorkItems.front();
+        m_WorkItems.pop();
+        lock.unlock();
+
+       // while(1);
+        switch(work->cmd)
+        {
+            case CHUNK_WORKER_CMD::FREE: // we will want to introduce logic to save changes to chunks here eventually
+            {
+                delete work->chunk;
+                break;
+            }
+            case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
+            {
+                //continue;
+                /*
+                    we set delay flag because we cannot have asynchronous calls to OpenGL
+                */
+                auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true); 
+                std::unique_lock flock(m_FinishedItemsLock);
+                m_FinishedWork.push(chunk);
+                //lock.unlock();
+                break;
+            }
+            case CHUNK_WORKER_CMD::UPDATE:
+            {
+                
+                break;
+            }
+            default: break;
+                //logger.Log(LOGTYPE::ERROR, "ChunkManager::ChunkWorkerThread() --> Bad CHUNK_WORKER_CMD");      
+        }
+        delete work;
+    }
+}
+
+ChunkManager::~ChunkManager()
+{
+}
+
+void ChunkManager::PerFrame()
+{   
+    auto pos = gl.GetCamera()->GetPosition();
+    auto xz_pos = glm::vec2(pos.x, pos.z);
+
+    auto diff_x = xz_pos.x - m_CurrentChunk.first*CHUNK_WIDTH;
+    auto diff_z = xz_pos.y - m_CurrentChunk.second*CHUNK_WIDTH;
+
+    bool new_chunk = true;
+
+    if (diff_x >= 0.0f && diff_x <= 16.0f && diff_z >= 0.0f && diff_z <= 16.0f)
+        new_chunk = false;
+    if (new_chunk)
+    {
+        if (diff_x < 0.0f)
+        {
+            m_CurrentChunk.first--;
+            MapMoveLeft();
+        }
+        else if (diff_x > 16.0f)
+        {
+            m_CurrentChunk.first++;
+            MapMoveRight();
+        }
+        else if (diff_z > 16.0f)
+        {
+            m_CurrentChunk.second++;
+            MapMoveForward();
+        }
+        else if (diff_z < 0.0f)
+        {
+            m_CurrentChunk.second--;
+            MapMoveBackward();
+        }
+
+        logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> current chunk " + std::to_string(m_CurrentChunk.first) + "," +\
+        std::to_string(m_CurrentChunk.second));
+    }
+
+    std::unique_lock lock(m_FinishedItemsLock);
+    while(m_FinishedWork.size())
+    {
+        auto chunk = m_FinishedWork.front();
+        chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
+        m_FinishedWork.pop();
+        m_ActiveChunks.push_back(chunk);
+        if (m_ActiveChunks.size() > MAX_CHUNKS)
+        {
+            while(1){printf("Reached MAX_CHUNKS\n");};
+            
+        }
+        logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
+        AddChunkToRenderer(chunk);
+
+        break;
+    }
+    lock.unlock();
+
+
+
+}
+
+
+// z++
+void ChunkManager::MapMoveForward()
+{
+    // All items at the bottom the map are invalid
+    std::vector<Chunk*> invalids;
+    auto it = m_ActiveChunks.begin();
+
+    while(it != m_ActiveChunks.end())
+    {
+        auto chunk = *it;
+        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
+        if (dist > CHUNK_DISTANCE)
+        {
+            it = m_ActiveChunks.erase(it);
+            chunk->GetRenderObject()->m_bDelete = true;
+            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
+            std::unique_lock lock(m_WorkerLock);
+            m_WorkItems.push(work);
+            m_WorkerCV.notify_one();
+            lock.unlock();
+        }
+        else
+        {
+            it++;
+        }
+    }
+
+    for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
+    {
+        for (int z = m_CurrentChunk.second; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
+        {
+            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
+            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            {
+                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                std::unique_lock lock(m_WorkerLock);
+                m_WorkItems.push(work);
+                m_WorkerCV.notify_one();
+                lock.unlock();
+            }
+        }
+    }
+}
+
+//z--
+void ChunkManager::MapMoveBackward()
+{
+     // All items at the bottom the map are invalid
+    std::vector<Chunk*> invalids;
+    auto it = m_ActiveChunks.begin();
+
+    while(it != m_ActiveChunks.end())
+    {
+        auto chunk = *it;
+        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
+        if (dist > CHUNK_DISTANCE)
+        {
+            it = m_ActiveChunks.erase(it);
+            chunk->GetRenderObject()->m_bDelete = true;
+            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
+            std::unique_lock lock(m_WorkerLock);
+            m_WorkItems.push(work);
+            m_WorkerCV.notify_one();
+            lock.unlock();
+        }
+        else
+        {
+            it++;
+        }
+    }
+
+    for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
+    {
+        for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second; z++)
+        {
+            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
+            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            {
+                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                std::unique_lock lock(m_WorkerLock);
+                m_WorkItems.push(work);
+                m_WorkerCV.notify_one();
+                lock.unlock();
+            }
+        }
+    }
+}
+
+// x--
+void ChunkManager::MapMoveLeft()
+{
+        // All items at the bottom the map are invalid
+    std::vector<Chunk*> invalids;
+    auto it = m_ActiveChunks.begin();
+
+    while(it != m_ActiveChunks.end())
+    {
+        auto chunk = *it;
+        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
+        if (dist > CHUNK_DISTANCE)
+        {
+            it = m_ActiveChunks.erase(it);
+            chunk->GetRenderObject()->m_bDelete = true;
+            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
+            std::unique_lock lock(m_WorkerLock);
+            m_WorkItems.push(work);
+            m_WorkerCV.notify_one();
+            lock.unlock();
+        }
+        else
+        {
+            it++;
+        }
+    }
+
+    for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first; x++)
+    {
+        for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
+        {
+            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
+            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            {
+                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                std::unique_lock lock(m_WorkerLock);
+                m_WorkItems.push(work);
+                m_WorkerCV.notify_one();
+                lock.unlock();
+            }
+        }
+    }
+}
+
+// x++
+void ChunkManager::MapMoveRight()
+{
+            // All items at the bottom the map are invalid
+    std::vector<Chunk*> invalids;
+    printf("map move foreward\n");
+    auto it = m_ActiveChunks.begin();
+
+    while(it != m_ActiveChunks.end())
+    {
+        auto chunk = *it;
+        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
+        if (dist > CHUNK_DISTANCE)
+        {
+            it = m_ActiveChunks.erase(it);
+            chunk->GetRenderObject()->m_bDelete = true;
+            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
+            std::unique_lock lock(m_WorkerLock);
+            m_WorkItems.push(work);
+            m_WorkerCV.notify_one();
+            lock.unlock();
+        }
+        else
+        {
+            it++;
+        }
+    }
+
+    for (int x = m_CurrentChunk.first; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
+    {
+        for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
+        {
+            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
+            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            {
+                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                std::unique_lock lock(m_WorkerLock);
+                m_WorkItems.push(work);
+                m_WorkerCV.notify_one();
+                lock.unlock();
+            }
+        }
+    }
+}
+
+ChunkWorkItem::ChunkWorkItem(Chunk *nchunk, CHUNK_WORKER_CMD wcmd)  : chunk(nchunk), cmd(wcmd)
+{
+}
+ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd)
+{
+};

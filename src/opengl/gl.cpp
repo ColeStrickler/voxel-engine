@@ -275,7 +275,7 @@ Camera::Camera(float screen_height, float screen_width, float speed, GLManager *
 {
     ChangeScreenDimensions(screen_width, screen_height);
     ChangeMoveSpeed(speed);
-    m_CameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
+    m_CameraPos = glm::vec3(0.0f, 95.0f, 10.0f);
     m_CameraFront = glm::vec3(0.0f, 0.0f, -1.0f) + m_CameraPos;
     m_CameraUp = glm::cross(m_CameraFront, m_CameraRight);
     m_CameraRight = glm::normalize(glm::cross(m_CameraUp, m_CameraFront));
@@ -297,7 +297,7 @@ void Camera::ChangeScreenDimensions(float width, float height)
 {
     m_ScreenHeight = height;
     m_ScreenWidth = width;
-    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 512.0f);
+    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, ViewDistance);
     m_Ortho = glm::ortho(0.0f, width, 0.0f, height);
 }
 

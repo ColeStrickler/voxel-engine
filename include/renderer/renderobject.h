@@ -32,8 +32,9 @@ public:
     RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type = OBJECTYPE::RegularMaterial);
     RenderObject(ShaderProgram* sp, MeshModel* model);
     ~RenderObject();
-    void Render();
+    bool Render();
     RenderObject* Duplicate();
+    
     const glm::vec3& GetPosition() const {return m_Position;}
     void SetPosition(const glm::vec3& position);
     void Translate(const glm::vec3& translation_vec);
@@ -64,7 +65,7 @@ public:
     bool UsingWireframe() const { return m_bWireFrame; }
     void ToggleStencilOutline() { m_bStencilOutline = !m_bStencilOutline;}
     bool UsingStencilOutline() const { return m_bStencilOutline; }
-
+    bool m_bDelete;
     OBJECTYPE m_ObjectType;
 private:
     /* Handle Shader Uniforms*/
@@ -72,7 +73,7 @@ private:
     void SetShaders();
     void HandlePhongShaders();
 
-
+    
 
 
     bool m_bUseIndexBuffer;

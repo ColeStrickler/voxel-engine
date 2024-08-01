@@ -26,6 +26,7 @@ extern Logger logger;
 extern GUI GUI_Manager;
 extern Profiler profiler;
 extern Renderer renderer;
+
 GLManager gl;
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -43,6 +44,9 @@ int main()
     GUI_Manager.RegisterLogTarget(&logger);
     logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
     logger.Log(LOGTYPE::INFO, "test");
+
+
+    ChunkManager chunkManager;
 
     Shader vertex_shader(util::getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
     if (vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
@@ -103,30 +107,29 @@ int main()
     tva->AddIndexBuffer(iva);
     RenderObject* t_obj = new RenderObject(tva, tex_vbo, &chunkShaderProgram, iva, OBJECTYPE::ChunkMesh);
     //l_obj->SetPosition({0.0, 0.0, 0.0});
-    renderer.AddRenderObject(t_obj);
+    //renderer.AddRenderObject(t_obj);
 
 
-    Texture* spec = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
-    Texture* diff = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
-    t_obj->m_TexturedObject.AddDiffuseMap(diff);
-    t_obj->m_TexturedObject.AddSpecularMap(spec);
-    t_obj->m_TexturedObject.Shininess = 64.0f;
+    
+    //t_obj->m_TexturedObject.AddDiffuseMap(diff);
+    //t_obj->m_TexturedObject.AddSpecularMap(spec);
+    //t_obj->m_TexturedObject.Shininess = 64.0f;
+//
 
+    
 
-
-
-    for (int i = 0; i < 32; i++)
-    {
-        for (int j = 0; j < 32; j++)
-        {
-            auto chunk = new Chunk(i, j, &chunkShaderProgram);
-            auto chunkObj = chunk->GetRenderObject();
-            chunkObj->m_TexturedObject.AddDiffuseMap(diff);
-            chunkObj->m_TexturedObject.AddSpecularMap(spec);
-            chunkObj->m_TexturedObject.Shininess = 64.0f;
-            renderer.AddRenderObject(chunkObj);
-        }
-    }
+    //for (int i = 0; i < 32; i++)
+    //{
+    //    for (int j = 0; j < 32; j++)
+    //    {
+    //        auto chunk = new Chunk(i, j, &chunkShaderProgram);
+    //        auto chunkObj = chunk->GetRenderObject();
+    //        chunkObj->m_TexturedObject.AddDiffuseMap(diff);
+    //        chunkObj->m_TexturedObject.AddSpecularMap(spec);
+    //        chunkObj->m_TexturedObject.Shininess = 64.0f;
+    //        renderer.AddRenderObject(chunkObj);
+    //    }
+    //}
     
      
     BufferLayout* lighting_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
@@ -164,9 +167,9 @@ int main()
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
 
-    for (int i = -20; i < 20; i += 4)
+    for (int i = -20; i < 20; i += 39)
     {
-        for (int j = -20; j < 20; j += 4)
+        for (int j = -20; j < 20; j += 39)
         {
             auto obj = l_obj->Duplicate();
             obj->Translate({1.0*i, 85.0f, 1.0*j});
@@ -191,7 +194,7 @@ int main()
                 
     
 
-    
+   
     
 
     
@@ -219,31 +222,21 @@ int main()
     // /    printf("Could not bind texture1\n");
     // /}
 
-    ModelImporter* import = new ModelImporter(&shaderProgram);
-    import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
-    auto mesh_model = import->ExportCurrentModel();
-    auto obj = new RenderObject(&shaderProgram, mesh_model);
-    for (int i = 0; i < 2; i++)
-    {
-        auto xobj = obj->Duplicate();
-        xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
-        xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
-        renderer.AddRenderObject(xobj);
-    }
+    //ModelImporter* import = new ModelImporter(&shaderProgram);
+    //import->LoadModel("/home/cole/Documents/voxel-engine/include/dev/models/mech_tank/scene.gltf");
+    //auto mesh_model = import->ExportCurrentModel();
+    //auto obj = new RenderObject(&shaderProgram, mesh_model);
+    //for (int i = 0; i < 2; i++)
+    //{
+    //    auto xobj = obj->Duplicate();
+    //    xobj->SetPosition(glm::vec3(50 *util::Random(), 50 *util::Random(), 50 *util::Random()));
+    //    xobj->Rotate(glm::vec3(util::Random(), util::Random(), util::Random()), 180.0f * util::Random());
+    //    renderer.AddRenderObject(xobj);
+    //}
 
     
 
-    glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-    glm::mat4 view = glm::mat4(1.0f);
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)DEFAULT_WINDOW_WIDTH / (float)DEFAULT_WINDOW_HEIGHT, 0.1f, 100.0f);
-    glm::vec3 cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-    model = glm::translate(model, cube_pos);
-    view = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
 
-    glm::mat4 ls_model = glm::mat4(1.0f);
-    glm::vec3 ls_pos = glm::vec3(2.0f, 0.0f, 0.0f);
-    glm::vec3 lightColor = glm::vec3(1.0f, 0.4f, 0.40f);
-    ls_model = glm::translate(ls_model, ls_pos);
 
 
    
@@ -254,6 +247,7 @@ int main()
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
+        chunkManager.PerFrame();
         gl.PerFrame();
         logger.WriteLogs();
         // model = glm::rotate(model, .1f, );
