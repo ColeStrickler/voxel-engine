@@ -116,6 +116,10 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 
 vec3 getTextureColor()
 {
+    if (TexCoords.x == 0.0 && TexCoords.y == 0.0)
+        return vec3(1.0, 0.0, 0.0);
+
+
     // properties
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
@@ -139,6 +143,7 @@ void main()
         case 3: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;
         case 5: FragColor = vec4(getTextureColor(), 1.0); break;
         case 6: FragColor = vec4(1.0, 0.3, 0.3, 1.0); break;
+        case 7: FragColor = vec4(vec3(texture(textureObject.diffuseMap, TexCoords)), 1.0); break;
         default: FragColor = vec4(1.0, 1.0, 1.0, 1.0); break;
     }
 }

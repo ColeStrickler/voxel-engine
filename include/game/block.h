@@ -59,6 +59,16 @@ enum BlockType
 };
 
 
+enum BLOCKFACE 
+{
+    FRONT,
+    BACK,
+    LEFT,
+    RIGHT,
+    TOP,
+    BOTTOM
+};
+
 class Block
 {
 public:
@@ -66,10 +76,10 @@ public:
     Block(BlockType type);
     ~Block();
     inline bool isActive() const {return m_bIsActive;};
-    bool setActive(bool bActive);
+    void setActive(bool bActive);
     inline void setType(BlockType type) {m_Type = type;};
     inline BlockType getBlockType() const {return m_Type;}
-    static std::vector<BlockVertex> GenBlockVertices(BlockType blocktype);
+    static std::vector<std::pair<float, float>> GenBlockVertices(BlockType blocktype, BLOCKFACE face);
     static std::vector<std::pair<float,float>> GenTextureCoordBlockFace(std::pair<uint32_t, uint32_t> TextureAtlasIndex);
 private:
     bool m_bIsActive;

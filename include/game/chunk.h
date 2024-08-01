@@ -17,19 +17,10 @@ struct ChunkVertex
     float position[3];
     int faceBlockType; // [face|blockType] --> face is upper 16 bits, blockType is lower 16 bits
     int reserved;
+    float texCoords[2];
     // We do not need to store texture coords because we will infer them from the block type.
     // Each block gets 4 slots in the texture map, 1 for top, 2 for the sides, 1 for bottom
 }__attribute__((packed));
-
-enum BLOCKFACE 
-{
-    FRONT,
-    BACK,
-    LEFT,
-    RIGHT,
-    TOP,
-    BOTTOM
-};
 
 
 
@@ -46,7 +37,7 @@ private:
     void GenerateChunkMesh(ShaderProgram* sp);
     void GenerateChunk();
     void Render();
-    void BlockGenVertices(Block& block, int x, int y, int z);
+    void BlockGenVertices(Block& block, float x, float y, float z);
     std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
     Block m_Blocks[16][64][16];

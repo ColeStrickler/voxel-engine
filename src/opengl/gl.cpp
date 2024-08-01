@@ -297,7 +297,7 @@ void Camera::ChangeScreenDimensions(float width, float height)
 {
     m_ScreenHeight = height;
     m_ScreenWidth = width;
-    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 200.0f);
+    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, 512.0f);
     m_Ortho = glm::ortho(0.0f, width, 0.0f, height);
 }
 

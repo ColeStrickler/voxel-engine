@@ -20,6 +20,7 @@
 #include "util.h"
 #include "model_loader.h"
 #include "chunk.h"
+#include <utility>
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
 extern GUI GUI_Manager;
@@ -79,18 +80,50 @@ int main()
     {
         return -1;
     }
+
+    auto tex_front = Block::GenBlockVertices(BlockType::Dirt, BLOCKFACE::FRONT);
+    const std::vector<ChunkVertex> cube_Vertices = {
+    // Front Face
+        ChunkVertex{{-0.5f, -0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[0].first, tex_front[0].second}}, // Bottom-left
+        ChunkVertex{{ 0.5f, -0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[1].first, tex_front[1].second}}, // Bottom-right
+        ChunkVertex{{-0.5f,  0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[2].first, tex_front[2].second}}, // Top-left
+        ChunkVertex{{ 0.5f,  0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[3].first, tex_front[3].second}}, // Top-right
+};
+
    
 
+     BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
+          new BufferElement("faceBlockType", ShaderDataType::Int, false),  new BufferElement("reserved", ShaderDataType::Int, false),\
+           new BufferElement("texCoord", ShaderDataType::Float2, false)});
+    VertexArray* tva = new VertexArray;
+    IndexBuffer* iva = new IndexBuffer((uint32_t*)cubeIndices.data(), BLOCK_INDICES_COUNT/6);
+    VertexBuffer* tex_vbo = new VertexBuffer((float*)cube_Vertices.data(), cube_Vertices.size()*sizeof(ChunkVertex));
+    tex_vbo->SetLayout(tex_layout);
+    tva->AddVertexBuffer(tex_vbo);
+    tva->AddIndexBuffer(iva);
+    RenderObject* t_obj = new RenderObject(tva, tex_vbo, &chunkShaderProgram, iva, OBJECTYPE::ChunkMesh);
+    //l_obj->SetPosition({0.0, 0.0, 0.0});
+    renderer.AddRenderObject(t_obj);
+
+
+    Texture* spec = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
+    Texture* diff = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
+    t_obj->m_TexturedObject.AddDiffuseMap(diff);
+    t_obj->m_TexturedObject.AddSpecularMap(spec);
+    t_obj->m_TexturedObject.Shininess = 64.0f;
 
 
 
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 32; i++)
     {
-        for (int j = 0; j < 16; j++)
+        for (int j = 0; j < 32; j++)
         {
             auto chunk = new Chunk(i, j, &chunkShaderProgram);
             auto chunkObj = chunk->GetRenderObject();
+            chunkObj->m_TexturedObject.AddDiffuseMap(diff);
+            chunkObj->m_TexturedObject.AddSpecularMap(spec);
+            chunkObj->m_TexturedObject.Shininess = 64.0f;
             renderer.AddRenderObject(chunkObj);
         }
     }
@@ -109,29 +142,22 @@ int main()
     l_obj->m_Light.direction = glm::vec3({0.0, 0.0, 0.0});
 
 
-    printf("hjere!\n");
-    auto dirt_vertices = Block::GenBlockVertices(BlockType::Dirt);
-    for (auto& v: dirt_vertices)
-        PrintBlockVertex(v);
 
 
-    BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-          new BufferElement("NORMALS", ShaderDataType::Float3, false),new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
-    VertexArray* tva = new VertexArray;
-    IndexBuffer* iva = new IndexBuffer((uint32_t*)cubeIndices.data(), BLOCK_INDICES_COUNT);
-    VertexBuffer* tex_vbo = new VertexBuffer((float*)dirt_vertices.data(), BLOCK_VERTICES_SIZE);
-    tex_vbo->SetLayout(tex_layout);
-    tva->AddVertexBuffer(tex_vbo);
-    tva->AddIndexBuffer(iva);
-    RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, iva, OBJECTYPE::TexturedObject);
+
+    //BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
+    //      new BufferElement("NORMALS", ShaderDataType::Float3, false),new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });
+    //VertexArray* tva = new VertexArray;
+    //IndexBuffer* iva = new IndexBuffer((uint32_t*)cubeIndices.data(), BLOCK_INDICES_COUNT);
+    //VertexBuffer* tex_vbo = new VertexBuffer((float*)dirt_vertices.data(), BLOCK_VERTICES_SIZE);
+    //tex_vbo->SetLayout(tex_layout);
+    //tva->AddVertexBuffer(tex_vbo);
+    //tva->AddIndexBuffer(iva);
+    //RenderObject* t_obj = new RenderObject(tva, tex_vbo, &shaderProgram, iva, OBJECTYPE::TexturedObject);
     //l_obj->SetPosition({0.0, 0.0, 0.0});
-    renderer.AddRenderObject(l_obj);
+   // renderer.AddRenderObject(l_obj);
 
-    Texture* spec = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
-    Texture* diff = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
-    t_obj->m_TexturedObject.AddDiffuseMap(diff);
-    t_obj->m_TexturedObject.AddSpecularMap(spec);
-    t_obj->m_TexturedObject.Shininess = 64.0f;
+    
 
     
 
@@ -143,7 +169,7 @@ int main()
         for (int j = -20; j < 20; j += 4)
         {
             auto obj = l_obj->Duplicate();
-            obj->Translate({1.0*i, 5.0f, 1.0*j});
+            obj->Translate({1.0*i, 85.0f, 1.0*j});
             renderer.AddRenderObject(obj);
         }
     }

@@ -99,7 +99,7 @@ void RenderObject::DrawCall() const
     int count = m_VertexArray->GetCount();
     if (m_bUseIndexBuffer)
     {
-        printf("Count %d\n", count);
+       // printf("Count %d\n", count);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
     }
     else
@@ -176,6 +176,19 @@ void RenderObject::HandlePhongShaders()
         case OBJECTYPE::OutlineObject:
         {
             m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+            break;
+        }
+        case OBJECTYPE::ChunkMesh:
+        {
+            auto camera_pos = gl.GetCamera()->GetPosition();
+            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+            m_TexturedObject.Bind();
+            m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
+            m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
+            m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+            m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
+            m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 0);
             break;
         }
         default:

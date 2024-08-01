@@ -2,6 +2,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in int aFaceBlockType;
 layout (location = 2) in int aReserved;
+layout (location = 3) in vec2 aTexCoords;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
@@ -23,7 +24,7 @@ vec3 GetFaceNormal(int face)
         case 3: return vec3(1.0, 0.0, 0.0);  // right
         case 4: return vec3(0.0, 1.0, 0.0); // top
         case 5: return vec3(0.0, -1.0, 0.0); // bottom
-        default: return vec3(0.0, 0.0, 0.0);
+        default: return vec3(0.0, 0.0, 1.0);
     }
 }
 
@@ -45,7 +46,7 @@ vec2 GetTextureCoords(int face, int blocktype)
         default:  index = (0*16)/64; break;    
     }
 
-    int absolute = 0;//(blocktype*64)+index;
+    int absolute = (blocktype*64);
     float xloc = (absolute % TEXTURE_MAP_WIDTH)/TEXTURE_MAP_WIDTH;
     float yloc = ((absolute/TEXTURE_MAP_WIDTH)*16) / TEXTURE_MAP_WIDTH;
 
@@ -72,5 +73,5 @@ void main()
     gl_Position = projection * view * vec4(FragPos, 1.0);
 
     Normal = mat3(transpose(inverse(model))) * GetFaceNormal(face);  
-    TexCoords = GetTextureCoords(face, blocktype);
+    TexCoords = aTexCoords;
 } 
