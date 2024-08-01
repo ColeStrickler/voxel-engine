@@ -7,10 +7,18 @@ VertexArray::VertexArray()
 
 VertexArray::~VertexArray()
 {
+    
     if (m_VertexBuffer)
+    {
+        
         delete m_VertexBuffer;
+    }
     if (m_IndexBuffer)
+    {
         delete m_IndexBuffer;
+    }
+    Delete();
+    //printf("~VertexArray() --> 0x%x, 0x%x\n", m_VertexBuffer, m_IndexBuffer);
 }
 
 void VertexArray::Delete()
@@ -40,6 +48,7 @@ void VertexArray::AddVertexBuffer(VertexBuffer* vertex_buffer)
 {
     auto& layout = vertex_buffer->GetLayout();
     auto& elements = layout.GetElements();
+    m_VertexBuffer = vertex_buffer;
     assert(elements.size() > 0);
     this->Bind();
     vertex_buffer->Bind();

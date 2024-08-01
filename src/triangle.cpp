@@ -41,12 +41,6 @@ int main()
 {
     gl.SetDepthTesting(true);
     gl.SetStencilTesting(true);
-    GUI_Manager.RegisterLogTarget(&logger);
-    logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
-    logger.Log(LOGTYPE::INFO, "test");
-
-
-    ChunkManager chunkManager;
 
     Shader vertex_shader(util::getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
     if (vertex_shader.CheckError() != ShaderError::NO_ERROR_OK)
@@ -59,9 +53,6 @@ int main()
     Shader fragment_shader(util::getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
     if (fragment_shader.CheckError() != ShaderError::NO_ERROR_OK)
         logger.Log(LOGTYPE::ERROR, fragment_shader.FetchLog());
-
-
-
 
     // check for shader compile errors
     ShaderProgram shaderProgram;
@@ -85,6 +76,24 @@ int main()
         return -1;
     }
 
+
+
+
+
+
+
+    GUI_Manager.RegisterLogTarget(&logger);
+    logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
+    logger.Log(LOGTYPE::INFO, "test");
+
+
+    ChunkManager chunkManager;
+
+    
+
+
+
+    
     auto tex_front = Block::GenBlockVertices(BlockType::Dirt, BLOCKFACE::FRONT);
     const std::vector<ChunkVertex> cube_Vertices = {
     // Front Face
@@ -161,6 +170,7 @@ int main()
    // renderer.AddRenderObject(l_obj);
 
     
+    
 
     
 
@@ -234,10 +244,6 @@ int main()
     //    renderer.AddRenderObject(xobj);
     //}
 
-    
-
-
-
 
    
     
@@ -286,6 +292,7 @@ int main()
        
         
         renderer.RenderAllObjects();
+        //gl.GetCamera()->CameraHandleKey_W();
        
 
         // va.Bind();

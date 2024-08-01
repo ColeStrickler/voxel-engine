@@ -20,6 +20,7 @@ VertexBuffer::~VertexBuffer()
     glDeleteBuffers(1, &m_BufferId);
     if (m_Layout)
         delete m_Layout;
+    //printf("~VertexBuffer() \n");
 }
 
 void VertexBuffer::Delete()
@@ -56,7 +57,8 @@ IndexBuffer::IndexBuffer(uint32_t *indices, uint32_t count) : m_Count(count)
 
 IndexBuffer::~IndexBuffer()
 {
-  //  glDeleteBuffers(1, &m_BufferId);
+    //printf("~IndexBuffer()\n");
+    glDeleteBuffers(1, &m_BufferId);
 }
 
 void IndexBuffer::Delete()
@@ -82,6 +84,7 @@ BufferElement::BufferElement(const std::string& Name, ShaderDataType type, bool 
 
 BufferElement::~BufferElement()
 {
+  //  printf("~BufferElement()\n");
 }
 
 BufferLayout::BufferLayout(std::initializer_list<BufferElement*> elements) :
@@ -94,6 +97,7 @@ BufferLayout::~BufferLayout()
 {
     for (auto& element: m_Elements)
         delete element;
+    //printf("~BufferLayout()\n");
 }
 
 void BufferLayout::InitLayout()

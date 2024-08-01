@@ -40,7 +40,6 @@ private:
     int m_xCoord;
     int m_zCoord;
     void GenerateChunk();
-    void Render();
     void BlockGenVertices(Block& block, float x, float y, float z);
     std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
@@ -76,7 +75,7 @@ public:
     CHUNK_WORKER_CMD cmd;
 };
 
-#define CHUNK_MANAGER_THREADCOUNT 4
+#define CHUNK_MANAGER_THREADCOUNT 8
 class ChunkManager
 {
 public:
@@ -94,7 +93,7 @@ public:
     
     std::vector<Chunk*> m_ActiveChunks;
     
-    std::vector<std::vector<Chunk*>> m_ChunkMap;
+
     std::pair<int, int> m_CurrentChunk;
 private:
     void AddChunkToRenderer(Chunk* chunk);

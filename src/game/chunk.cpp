@@ -13,6 +13,10 @@ ShaderProgram* ChunkManager::m_ChunkShader;
 Texture* ChunkManager::m_TextureAtlasDiffuse;
 Texture* ChunkManager::m_TextureAtlasSpecular;
 
+int init_count = 0;
+int delete_count = 0;
+
+
 Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z)
 {
     
@@ -30,7 +34,7 @@ Chunk::Chunk(int x, int z, ShaderProgram* sp, bool delay): m_xCoord(x), m_zCoord
 
 Chunk::~Chunk()
 {
-   // delete m_RenderObj; // renderObj deletes VertexArray deletes (indexBuffer, vertexBuffer)
+   //delete m_RenderObj; // renderObj deletes VertexArray deletes (indexBuffer, vertexBuffer)
 }
 
 glm::vec2 Chunk::GetPosition()
@@ -131,7 +135,7 @@ void Chunk::GenerateChunk()
             {
                 auto& block = m_Blocks[x][y][z];
                 block.setType(BlockType::Dirt);
-               // printf("here %d,%d,%d\n", x, y, z);
+                //printf("here %d,%d,%d\n", x, y, z);
                 if (x == 0 || z == 0 || x == 15 || z == 15 || y== 0 || y== 63)
                     block.setActive(true);
                 if (block.isActive())
@@ -224,16 +228,25 @@ void ChunkManager::ChunkWorkerThread()
         {
             case CHUNK_WORKER_CMD::FREE: // we will want to introduce logic to save changes to chunks here eventually
             {
+                int before = util::GetMemoryUsageKb();
                 delete work->chunk;
+                printf("free chunk\n");
+                delete_count++;
+                printf("init: %d delete %d\n", init_count, delete_count);
+            
+                //printf("difference free %ld 0x%x\n", int(util::GetMemoryUsageKb())-before, work->chunk);
                 break;
             }
             case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
             {
+                init_count++;
                 //continue;
                 /*
                     we set delay flag because we cannot have asynchronous calls to OpenGL
                 */
+                int before = util::GetMemoryUsageKb();
                 auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true); 
+               // printf("difference alloc %ld\n", int(util::GetMemoryUsageKb())-before);
                 std::unique_lock flock(m_FinishedItemsLock);
                 m_FinishedWork.push(chunk);
                 //lock.unlock();
@@ -290,7 +303,7 @@ void ChunkManager::PerFrame()
             MapMoveBackward();
         }
 
-        logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> current chunk " + std::to_string(m_CurrentChunk.first) + "," +\
+        //logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> current chunk " + std::to_string(m_CurrentChunk.first) + "," +\
         std::to_string(m_CurrentChunk.second));
     }
 
@@ -303,12 +316,12 @@ void ChunkManager::PerFrame()
         m_ActiveChunks.push_back(chunk);
         if (m_ActiveChunks.size() > MAX_CHUNKS)
         {
-            while(1){printf("Reached MAX_CHUNKS\n");};
+            while(1){printf("Reached MAX_CHUNKS %d, %d, %d\n", m_ActiveChunks.size(), init_count, delete_count);};
             
         }
-        logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
+        //logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
         AddChunkToRenderer(chunk);
-
+        //printf("chunk %x, chunk->RenderObj %x\n", chunk, chunk->GetRenderObject());
         break;
     }
     lock.unlock();
@@ -454,8 +467,8 @@ void ChunkManager::MapMoveLeft()
 void ChunkManager::MapMoveRight()
 {
             // All items at the bottom the map are invalid
-    std::vector<Chunk*> invalids;
-    printf("map move foreward\n");
+    //std::vector<Chunk*> invalids;
+    //printf("map move foreward\n");
     auto it = m_ActiveChunks.begin();
 
     while(it != m_ActiveChunks.end())
@@ -498,6 +511,6 @@ void ChunkManager::MapMoveRight()
 ChunkWorkItem::ChunkWorkItem(Chunk *nchunk, CHUNK_WORKER_CMD wcmd)  : chunk(nchunk), cmd(wcmd)
 {
 }
-ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd)
+ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd), chunk(nullptr)
 {
 };
