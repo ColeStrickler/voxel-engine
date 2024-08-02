@@ -3,17 +3,19 @@
 #include <vector>
 #include <thread>
 #include <queue>
+#include <unordered_set>
 #include "gl.h"
 #include "glbuffer.h"
 #include "glvertexarray.h"
 #include "renderobject.h"
 #include "world.h"
 #include "block.h"
-#define MAX_CHUNK_HEIGHT 64
+#define MAX_CHUNK_HEIGHT 96
 #define MIN_CHUNK_HEIGHT 0
 #define CHUNK_WIDTH 16
 #define PACK_FACEBLOCK(face, blocktype) ((face << 16) | (blocktype & 0xFFFF))
 
+extern GLManager gl;
 
 struct ChunkVertex
 {
@@ -25,7 +27,7 @@ struct ChunkVertex
     // Each block gets 4 slots in the texture map, 1 for top, 2 for the sides, 1 for bottom
 }__attribute__((packed));
 
-
+std::string pair2String(int x, int y);
 
 class Chunk
 {
@@ -34,6 +36,8 @@ public:
     Chunk(int x, int z, ShaderProgram*, bool delay);
     ~Chunk();
     glm::vec2 GetPosition();
+    std::pair<int, int> GetPositionAsPair();
+    std::string GetPositionAsString();
     RenderObject* GetRenderObject() { return m_RenderObj; }
     void GenerateChunkMesh(ShaderProgram* sp);
 private:
@@ -43,7 +47,7 @@ private:
     void BlockGenVertices(Block& block, float x, float y, float z);
     std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
-    Block m_Blocks[16][64][16];
+    Block m_Blocks[CHUNK_WIDTH][MAX_CHUNK_HEIGHT][CHUNK_WIDTH];
     IndexBuffer* m_IB;
     VertexBuffer* m_VB;
     VertexArray* m_VA;
@@ -52,7 +56,8 @@ private:
 
 
 #define CHUNK_DISTANCE static_cast<int>(ViewDistance/CHUNK_WIDTH/4)
-#define MAX_CHUNKS ((CHUNK_DISTANCE*4)*(CHUNK_DISTANCE*4)) // safety net
+#define DELETE_DISTANCE (CHUNK_DISTANCE*2)
+#define MAX_CHUNKS ((CHUNK_DISTANCE*10)*(CHUNK_DISTANCE*10)) // safety net
 //#define CHUNK_MAP_CENTER (CHUNK_DISTANCE/2)
 
 enum CHUNK_WORKER_CMD
@@ -61,6 +66,7 @@ enum CHUNK_WORKER_CMD
     ALLOC,
     UPDATE,
 };
+
 
 
 
@@ -100,10 +106,12 @@ private:
     void RemoveChunkFromRenderer(Chunk* chunk);
 
     static void ChunkWorkerThread();
-
+    static std::unordered_set<std::string> m_UsedChunks;
     static std::condition_variable m_WorkerCV;
     static std::mutex m_WorkerLock;
     static std::mutex m_FinishedItemsLock;
+    static std::mutex m_ToDeleteLock;
+    static std::vector<std::string> m_ToDeleteList;
     static std::queue<ChunkWorkItem*> m_WorkItems;
     static std::queue<Chunk*> m_FinishedWork;
     static ShaderProgram* m_ChunkShader;

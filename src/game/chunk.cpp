@@ -1,4 +1,9 @@
 #include "chunk.h"
+
+#define STB_PERLIN_IMPLEMENTATION
+#include "stb_perlin.h"
+
+
 extern GLManager gl;
 extern Logger logger;
 extern Renderer renderer;
@@ -8,7 +13,10 @@ std::condition_variable ChunkManager::m_WorkerCV;
 std::mutex ChunkManager::m_WorkerLock;
 std::mutex ChunkManager::m_FinishedItemsLock;
 std::queue<ChunkWorkItem*> ChunkManager::m_WorkItems;
+std::mutex ChunkManager::m_ToDeleteLock;
+std::vector<std::string> ChunkManager::m_ToDeleteList;
 std::queue<Chunk*> ChunkManager::m_FinishedWork;
+std::unordered_set<std::string> ChunkManager::m_UsedChunks;
 ShaderProgram* ChunkManager::m_ChunkShader;
 Texture* ChunkManager::m_TextureAtlasDiffuse;
 Texture* ChunkManager::m_TextureAtlasSpecular;
@@ -16,6 +24,10 @@ Texture* ChunkManager::m_TextureAtlasSpecular;
 int init_count = 0;
 int delete_count = 0;
 
+
+#define DEFAULT_CHUNK_GROUND 64
+#define HEIGHT_SCALE 10.0f // multiplier to adjust terrain
+#define SCALE 0.1f
 
 Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z)
 {
@@ -40,6 +52,16 @@ Chunk::~Chunk()
 glm::vec2 Chunk::GetPosition()
 {
     return glm::vec2(static_cast<float>(m_xCoord), static_cast<float>(m_zCoord));
+}
+
+std::pair<int, int> Chunk::GetPositionAsPair()
+{
+    return std::pair<int, int>(m_xCoord, m_zCoord);
+}
+
+std::string Chunk::GetPositionAsString()
+{
+    return pair2String(m_xCoord, m_zCoord);
 }
 
 void Chunk::GenerateChunkMesh(ShaderProgram* sp)
@@ -131,12 +153,19 @@ void Chunk::GenerateChunk()
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
         {
-            for (int y = 0; y < MAX_CHUNK_HEIGHT; y++)
+            for (int y = 0; y < DEFAULT_CHUNK_GROUND; y++)
             {
+                float nx = x * SCALE;
+                float ny = y * SCALE;
+                float nz = z * SCALE;
+                float noiseValue = stb_perlin_noise3(nx, ny, nz, 0, 0, 0); // 0 is the random seed
+                float height = std::floor(noiseValue * HEIGHT_SCALE + HEIGHT_SCALE / 2.0f);
+                int iheight = static_cast<int>(height);
+
                 auto& block = m_Blocks[x][y][z];
                 block.setType(BlockType::Dirt);
                 //printf("here %d,%d,%d\n", x, y, z);
-                if (x == 0 || z == 0 || x == 15 || z == 15 || y== 0 || y== 63)
+                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y>util::Random()*85)
                     block.setActive(true);
                 if (block.isActive())
                     BlockGenVertices(block, x, y, z);
@@ -229,11 +258,17 @@ void ChunkManager::ChunkWorkerThread()
             case CHUNK_WORKER_CMD::FREE: // we will want to introduce logic to save changes to chunks here eventually
             {
                 int before = util::GetMemoryUsageKb();
+
+                /*
+                    Add the chunk to the delete list so we can remove it from the used list
+                */
+                {
+                    std::unique_lock tdLock(m_ToDeleteLock);
+                    m_ToDeleteList.push_back(work->chunk->GetPositionAsString());
+                }
+                
                 delete work->chunk;
-                printf("free chunk\n");
                 delete_count++;
-                printf("init: %d delete %d\n", init_count, delete_count);
-            
                 //printf("difference free %ld 0x%x\n", int(util::GetMemoryUsageKb())-before, work->chunk);
                 break;
             }
@@ -307,18 +342,33 @@ void ChunkManager::PerFrame()
         std::to_string(m_CurrentChunk.second));
     }
 
+    {
+        std::unique_lock tdLock(m_ToDeleteLock);
+        for (auto& td: m_ToDeleteList)
+        {
+            m_UsedChunks.erase(td);
+        }
+        m_ToDeleteList.clear();
+    }
+
+
+
+
     std::unique_lock lock(m_FinishedItemsLock);
     while(m_FinishedWork.size())
     {
         auto chunk = m_FinishedWork.front();
-        chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
         m_FinishedWork.pop();
-        m_ActiveChunks.push_back(chunk);
-        if (m_ActiveChunks.size() > MAX_CHUNKS)
-        {
-            while(1){printf("Reached MAX_CHUNKS %d, %d, %d\n", m_ActiveChunks.size(), init_count, delete_count);};
-            
+        
+        if (m_ActiveChunks.size() >= MAX_CHUNKS)
+        { 
+            logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks. Discarding newly generated chunk.");
+            delete chunk;
+            break;
         }
+        chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
+        m_ActiveChunks.push_back(chunk);
+        m_UsedChunks.insert(chunk->GetPositionAsString());
         //logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
         AddChunkToRenderer(chunk);
         //printf("chunk %x, chunk->RenderObj %x\n", chunk, chunk->GetRenderObject());
@@ -342,7 +392,7 @@ void ChunkManager::MapMoveForward()
     {
         auto chunk = *it;
         auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > CHUNK_DISTANCE)
+        if (dist > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
             chunk->GetRenderObject()->m_bDelete = true;
@@ -362,6 +412,10 @@ void ChunkManager::MapMoveForward()
     {
         for (int z = m_CurrentChunk.second; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            if (used) continue;
+
+
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
             {
@@ -386,7 +440,7 @@ void ChunkManager::MapMoveBackward()
     {
         auto chunk = *it;
         auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > CHUNK_DISTANCE)
+        if (dist > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
             chunk->GetRenderObject()->m_bDelete = true;
@@ -406,6 +460,8 @@ void ChunkManager::MapMoveBackward()
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second; z++)
         {
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
             {
@@ -430,7 +486,7 @@ void ChunkManager::MapMoveLeft()
     {
         auto chunk = *it;
         auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > CHUNK_DISTANCE)
+        if (dist > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
             chunk->GetRenderObject()->m_bDelete = true;
@@ -450,6 +506,8 @@ void ChunkManager::MapMoveLeft()
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
             {
@@ -475,7 +533,7 @@ void ChunkManager::MapMoveRight()
     {
         auto chunk = *it;
         auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > CHUNK_DISTANCE)
+        if (dist > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
             chunk->GetRenderObject()->m_bDelete = true;
@@ -495,6 +553,8 @@ void ChunkManager::MapMoveRight()
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
             {
@@ -514,3 +574,11 @@ ChunkWorkItem::ChunkWorkItem(Chunk *nchunk, CHUNK_WORKER_CMD wcmd)  : chunk(nchu
 ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd), chunk(nullptr)
 {
 };
+
+std::string pair2String(int x, int y)
+{
+    
+    return std::to_string(x) + std::to_string(y);
+}
+
+
