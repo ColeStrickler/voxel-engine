@@ -36,6 +36,7 @@ GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(st
     RegisterKeyCallback(GLFW_KEY_S, std::bind(&Camera::CameraHandleKey_S, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_D, std::bind(&Camera::CameraHandleKey_D, &m_Camera));
     RegisterKeyCallback(GLFW_KEY_ESCAPE, std::bind(&GLManager::HandleToggleCursorHidden, this));
+    RegisterKeyCallback(GLFW_KEY_F4, std::bind(&GLManager::HandleDisplayChunkManagementOptions, this));
     RegisterKeyCallback(GLFW_KEY_F3, std::bind(&GLManager::HandleDisplayProfilerStatistics, this));
     RegisterKeyCallback(GLFW_KEY_F2, std::bind(&GLManager::HandleShowGlStats, this));
     RegisterKeyCallback(GLFW_KEY_F1, std::bind(&GLManager::HandleToggleCursorVisible, this));
@@ -252,9 +253,19 @@ void GLManager::HandleDisplayProfilerStatistics()
     auto KEYSTATUS = m_KeyPressed[GLFW_KEY_F3];
     if (KEYSTATUS == GLFW_PRESS || KEYSTATUS == GLFW_REPEAT) 
     {
-         GUI_Manager.m_bShowProfilerStatistics = true;
+         GUI_Manager.m_bShowProfilerStatistics = true;  
     }
 }
+
+void GLManager::HandleDisplayChunkManagementOptions()
+{
+    auto KEYSTATUS = m_KeyPressed[GLFW_KEY_F4];
+    if (KEYSTATUS == GLFW_PRESS || KEYSTATUS == GLFW_REPEAT) 
+    {
+         GUI_Manager.m_bShowChunkManagementOptions= true;
+    }
+}
+
 
 void GLManager::UpdateStats()
 {

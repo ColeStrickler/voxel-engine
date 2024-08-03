@@ -76,7 +76,7 @@ public:
     Block(BlockType type);
     ~Block();
     inline bool isActive() const {return m_bIsActive;};
-    void setActive(bool bActive);
+    inline void setActive(bool bActive);
     inline void setType(BlockType type) {m_Type = type;};
     inline BlockType getBlockType() const {return m_Type;}
     static std::vector<std::pair<float, float>> GenBlockVertices(BlockType blocktype, BLOCKFACE face);

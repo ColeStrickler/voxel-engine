@@ -8,6 +8,9 @@ extern GLManager gl;
 extern Logger logger;
 extern Renderer renderer;
 
+int MAX_CHUNKS = MAX_CHUNKS_;
+float CHUNK_DISTANCE = CHUNK_DISTANCE_;
+float DELETE_DISTANCE = DELETE_DISTANCE_;
 
 std::condition_variable ChunkManager::m_WorkerCV;
 std::mutex ChunkManager::m_WorkerLock;
@@ -26,7 +29,7 @@ int delete_count = 0;
 
 
 #define DEFAULT_CHUNK_GROUND 64
-#define HEIGHT_SCALE 10.0f // multiplier to adjust terrain
+#define HEIGHT_SCALE 96.0f // multiplier to adjust terrain
 #define SCALE 0.1f
 
 Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z)
@@ -153,19 +156,12 @@ void Chunk::GenerateChunk()
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
         {
-            for (int y = 0; y < DEFAULT_CHUNK_GROUND; y++)
+            for (int y = 0; y < 64; y++)
             {
-                float nx = x * SCALE;
-                float ny = y * SCALE;
-                float nz = z * SCALE;
-                float noiseValue = stb_perlin_noise3(nx, ny, nz, 0, 0, 0); // 0 is the random seed
-                float height = std::floor(noiseValue * HEIGHT_SCALE + HEIGHT_SCALE / 2.0f);
-                int iheight = static_cast<int>(height);
-
                 auto& block = m_Blocks[x][y][z];
                 block.setType(BlockType::Dirt);
                 //printf("here %d,%d,%d\n", x, y, z);
-                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y>util::Random()*85)
+                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == 63)
                     block.setActive(true);
                 if (block.isActive())
                     BlockGenVertices(block, x, y, z);
@@ -362,9 +358,13 @@ void ChunkManager::PerFrame()
         
         if (m_ActiveChunks.size() >= MAX_CHUNKS)
         { 
-            logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks. Discarding newly generated chunk.");
+            logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + "Discarding newly generated chunk.");
             delete chunk;
             break;
+        }
+        else
+        {
+            printf("MAX_CHUNKS %ld\n", MAX_CHUNKS);
         }
         chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
         m_ActiveChunks.push_back(chunk);

@@ -126,6 +126,7 @@ private:
     void DisplayGlStats();
     void UpdateStats();
     void HandleDisplayProfilerStatistics();
+    void HandleDisplayChunkManagementOptions();
     std::unordered_map<int, int> m_KeyPressed;
     bool m_ViewLock;
     bool m_bCursorHidden;

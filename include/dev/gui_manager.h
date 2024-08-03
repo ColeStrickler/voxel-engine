@@ -11,6 +11,7 @@
 #include "material.h"
 #include "renderobject.h"
 #include "profiler.h"
+#include "chunk.h"
 
 
 struct ObjectSelectionOptions
@@ -47,6 +48,7 @@ public:
 
 
     bool m_bShowProfilerStatistics;
+    bool m_bShowChunkManagementOptions;
 private:
     /* logging functionality */
     static std::thread m_LogThread;
@@ -56,7 +58,7 @@ private:
     void DisplayLogs();
 
     void DisplayProfilerStatistics();
-    
+    void DisplayChunkManagementOptions();
     
 
     /* object selection functionality */

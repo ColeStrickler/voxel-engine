@@ -10,12 +10,12 @@
 #include "renderobject.h"
 #include "world.h"
 #include "block.h"
-#define MAX_CHUNK_HEIGHT 96
+#define MAX_CHUNK_HEIGHT 64
 #define MIN_CHUNK_HEIGHT 0
 #define CHUNK_WIDTH 16
 #define PACK_FACEBLOCK(face, blocktype) ((face << 16) | (blocktype & 0xFFFF))
 
-extern GLManager gl;
+
 
 struct ChunkVertex
 {
@@ -55,9 +55,21 @@ private:
 };
 
 
-#define CHUNK_DISTANCE static_cast<int>(ViewDistance/CHUNK_WIDTH/4)
-#define DELETE_DISTANCE (CHUNK_DISTANCE*2)
-#define MAX_CHUNKS ((CHUNK_DISTANCE*10)*(CHUNK_DISTANCE*10)) // safety net
+
+
+#define CHUNK_DISTANCE_ (ViewDistance/CHUNK_WIDTH/2)
+#define DELETE_DISTANCE_ (CHUNK_DISTANCE*1.5)
+#define MEMORY_LIMIT_ (1024UL*1024UL*1024UL*4UL)
+#define VERTICES_PER_CUBE (24)
+#define MAX_CUBES_PER_CHUNK ((CHUNK_WIDTH*MAX_CHUNK_HEIGHT*4)+(CHUNK_WIDTH*CHUNK_WIDTH*2))
+#define MAX_VERTICES_PER_CHUNK (VERTICES_PER_CUBE*MAX_CUBES_PER_CHUNK)
+#define CHUNK_VERTICES_SIZE (sizeof(ChunkVertex)*MAX_VERTICES_PER_CHUNK)
+
+#define INDICES_PER_CUBE (36)
+#define CHUNK_INDICES_SIZE (INDICES_PER_CUBE*MAX_CUBES_PER_CHUNK*sizeof(unsigned int))
+#define CHUNK_SIZE_OTHER (sizeof(IndexBuffer)+sizeof(VertexBuffer)+sizeof(VertexArray)+sizeof(RenderObject))
+#define CHUNK_TWEAK_PARAMETER 6
+#define MAX_CHUNKS_ (MEMORY_LIMIT_/ (CHUNK_TWEAK_PARAMETER*(sizeof(Chunk) + CHUNK_VERTICES_SIZE + CHUNK_INDICES_SIZE + CHUNK_SIZE_OTHER))) // safety net
 //#define CHUNK_MAP_CENTER (CHUNK_DISTANCE/2)
 
 enum CHUNK_WORKER_CMD

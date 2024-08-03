@@ -8,8 +8,9 @@ LogTarget GUI::m_LogTarget;
 bool GUI::m_bRunLogThread;
 std::thread GUI::m_LogThread;
 
-
-
+extern int MAX_CHUNKS;
+extern float CHUNK_DISTANCE;
+extern float DELETE_DISTANCE;
 
 bool Vec3Slider(glm::vec3* v, const std::string& x_label, const std::string& y_label, const std::string& z_label, float limit = 100.0f, float floor = -100.0f)
 {
@@ -58,6 +59,7 @@ void GUI::RenderGUI()
     DisplayProfilerStatistics();
     DisplayObjectOptions();
     DisplayLogs();
+    DisplayChunkManagementOptions();
 }
 
 void GUI::Begin()
@@ -179,6 +181,32 @@ void GUI::DisplayProfilerStatistics()
         ImGui::EndPopup();
     }
   
+}
+
+void GUI::DisplayChunkManagementOptions()
+{
+    if (!m_bShowChunkManagementOptions)
+        return;
+
+    bool open = true;
+    ImGui::OpenPopup("Function Profiling Statistics");
+
+
+    if (ImGui::BeginPopupModal("Function Profiling Statistics", &open, ImGuiWindowFlags_None)) {
+
+        ImGui::SetWindowSize(ImVec2(600, 400));
+        ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 1000);
+        ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 16.0f);
+        ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 16.0f);
+
+        if (ImGui::Button("Close")) {
+            ImGui::CloseCurrentPopup();
+            m_bShowChunkManagementOptions = false;
+        }
+
+        ImGui::EndPopup();
+    }
+
 }
 
 void GUI::DisplayObjectOptions()
