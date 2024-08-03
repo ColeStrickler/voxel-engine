@@ -247,9 +247,7 @@ int main()
 
    
     
-    //glEnable(GL_CULL_FACE); // Enable face culling
-    //glCullFace(GL_BACK);    // Cull back faces (or GL_FRONT to cull front faces)
-    //glFrontFace(GL_CCW);    // Set the front face direction (counter-clockwise is default)
+
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();

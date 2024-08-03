@@ -16,7 +16,7 @@
 #define CHUNK_WIDTH 16
 #define PACK_FACEBLOCK(face, blocktype) ((face << 16) | (blocktype & 0xFFFF))
 #define DEFAULT_NOISE_SEED 1337
-
+#define CAN_ALLOC_CHUNK (ChunkManager::m_ActiveChunks.size() < MAX_CHUNKS)
 
 struct ChunkVertex
 {
@@ -94,7 +94,7 @@ public:
     CHUNK_WORKER_CMD cmd;
 };
 
-#define CHUNK_MANAGER_THREADCOUNT 8
+#define CHUNK_MANAGER_THREADCOUNT 16
 class ChunkManager
 {
 public:
@@ -104,13 +104,14 @@ public:
     void PerFrame();
 
     static void GenChunk(int x, int z);
-
+    void CleanFarChunks();
+    void CleanFarChunks(float div);
     void MapMoveForward();
     void MapMoveBackward();
     void MapMoveLeft();
     void MapMoveRight();
     
-    std::vector<Chunk*> m_ActiveChunks;
+    static std::vector<Chunk*> m_ActiveChunks;
     std::pair<int, int> m_CurrentChunk;
     static FastNoiseLite m_ChunkHeightNoise;
     void AddChunkToRenderer(Chunk* chunk);

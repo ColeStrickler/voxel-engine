@@ -22,6 +22,7 @@ ShaderProgram* ChunkManager::m_ChunkShader;
 Texture* ChunkManager::m_TextureAtlasDiffuse;
 Texture* ChunkManager::m_TextureAtlasSpecular;
 FastNoiseLite ChunkManager::m_ChunkHeightNoise;
+std::vector<Chunk*> ChunkManager::m_ActiveChunks;
 int init_count = 0;
 int delete_count = 0;
 
@@ -79,7 +80,7 @@ void Chunk::GenerateChunkMesh(ShaderProgram* sp)
     m_VA->AddVertexBuffer(m_VB);
     m_VA->AddIndexBuffer(m_IB);
     m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
-    m_RenderObj->Translate(glm::vec3(m_xCoord*CHUNK_WIDTH, 0.0f, m_zCoord*CHUNK_WIDTH));
+    m_RenderObj->Translate(glm::vec3(static_cast<float>(m_xCoord*CHUNK_WIDTH), 0.0f, static_cast<float>(m_zCoord*CHUNK_WIDTH)));
 }
 
 void Chunk::BlockGenVertices(Block &block, float x, float y, float z)
@@ -157,10 +158,8 @@ void Chunk::GenerateChunk()
             int height = static_cast<int>(55+(noise*8));
             for (int y = 0; y < height; y++)
             {
-                
                 auto& block = m_Blocks[x][y][z];
                 block.setType(BlockType::Dirt);
-                //printf("here %d,%d,%d\n", x, y, z);
                 if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == height-1)
                     block.setActive(true);
                 if (block.isActive())
@@ -205,9 +204,9 @@ ChunkManager::ChunkManager()
 
 
     // can see CHUNK_DISTANCE each way
-    auto chunk = new Chunk(0, 0, m_ChunkShader); 
-    AddChunkToRenderer(chunk);
-    m_ActiveChunks.push_back(chunk);
+    //auto chunk = new Chunk(0, 0, m_ChunkShader); 
+    //AddChunkToRenderer(chunk);
+    //m_ActiveChunks.push_back(chunk);
 
     for (int x = -CHUNK_DISTANCE; x < CHUNK_DISTANCE; x++)
     {
@@ -272,15 +271,13 @@ void ChunkManager::ChunkWorkerThread()
             case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
             {
                 init_count++;
-                //continue;
-                /*
-                    we set delay flag because we cannot have asynchronous calls to OpenGL
-                */
-                int before = util::GetMemoryUsageKb();
-                auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true); 
-               // printf("difference alloc %ld\n", int(util::GetMemoryUsageKb())-before);
-                std::unique_lock flock(m_FinishedItemsLock);
-                m_FinishedWork.push(chunk);
+                if (CAN_ALLOC_CHUNK)
+                {
+                    auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true); 
+                    std::unique_lock flock(m_FinishedItemsLock);
+                    m_FinishedWork.push(chunk);
+                }
+                
                 //lock.unlock();
                 break;
             }
@@ -344,6 +341,7 @@ void ChunkManager::PerFrame()
         for (auto& td: m_ToDeleteList)
         {
             m_UsedChunks.erase(td);
+            printf("erasing %s\n", td.c_str());
         }
         m_ToDeleteList.clear();
     }
@@ -361,6 +359,7 @@ void ChunkManager::PerFrame()
         { 
             logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + " Discarding newly generated chunk.");
             delete chunk;
+            CleanFarChunks(1.6f);
             break;
         }
         else
@@ -369,7 +368,9 @@ void ChunkManager::PerFrame()
         }
         chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
         m_ActiveChunks.push_back(chunk);
-        m_UsedChunks.insert(chunk->GetPositionAsString());
+
+        //if (m_UsedChunks.count(chunk->GetPositionAsString()) > 1)
+        //    while(1){printf("COPY! %s\n", chunk->GetPositionAsString());}
         //logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
         AddChunkToRenderer(chunk);
         //printf("chunk %x, chunk->RenderObj %x\n", chunk, chunk->GetRenderObject());
@@ -381,12 +382,8 @@ void ChunkManager::PerFrame()
 
 }
 
-
-// z++
-void ChunkManager::MapMoveForward()
+void ChunkManager::CleanFarChunks()
 {
-    // All items at the bottom the map are invalid
-    std::vector<Chunk*> invalids;
     auto it = m_ActiveChunks.begin();
 
     while(it != m_ActiveChunks.end())
@@ -408,19 +405,54 @@ void ChunkManager::MapMoveForward()
             it++;
         }
     }
+}
+
+void ChunkManager::CleanFarChunks(float div)
+{
+    auto it = m_ActiveChunks.begin();
+
+    while(it != m_ActiveChunks.end())
+    {
+        auto chunk = *it;
+        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
+        if (dist > DELETE_DISTANCE/div)
+        {
+            it = m_ActiveChunks.erase(it);
+            chunk->GetRenderObject()->m_bDelete = true;
+            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
+            std::unique_lock lock(m_WorkerLock);
+            m_WorkItems.push(work);
+            m_WorkerCV.notify_one();
+            lock.unlock();
+        }
+        else
+        {
+            it++;
+        }
+    }
+}
+
+
+// z++
+void ChunkManager::MapMoveForward()
+{
+    // All items at the bottom the map are invalid
+    CleanFarChunks();
+    
 
     for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
     {
         for (int z = m_CurrentChunk.second; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
+             bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
             if (used) continue;
 
 
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                m_UsedChunks.insert(pair2String(x, z));
                 std::unique_lock lock(m_WorkerLock);
                 m_WorkItems.push(work);
                 m_WorkerCV.notify_one();
@@ -434,39 +466,19 @@ void ChunkManager::MapMoveForward()
 void ChunkManager::MapMoveBackward()
 {
      // All items at the bottom the map are invalid
-    std::vector<Chunk*> invalids;
-    auto it = m_ActiveChunks.begin();
-
-    while(it != m_ActiveChunks.end())
-    {
-        auto chunk = *it;
-        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > DELETE_DISTANCE)
-        {
-            it = m_ActiveChunks.erase(it);
-            chunk->GetRenderObject()->m_bDelete = true;
-            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
-            std::unique_lock lock(m_WorkerLock);
-            m_WorkItems.push(work);
-            m_WorkerCV.notify_one();
-            lock.unlock();
-        }
-        else
-        {
-            it++;
-        }
-    }
+    CleanFarChunks();
 
     for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
             if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                 m_UsedChunks.insert(pair2String(x, z));
                 std::unique_lock lock(m_WorkerLock);
                 m_WorkItems.push(work);
                 m_WorkerCV.notify_one();
@@ -480,39 +492,19 @@ void ChunkManager::MapMoveBackward()
 void ChunkManager::MapMoveLeft()
 {
         // All items at the bottom the map are invalid
-    std::vector<Chunk*> invalids;
-    auto it = m_ActiveChunks.begin();
-
-    while(it != m_ActiveChunks.end())
-    {
-        auto chunk = *it;
-        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > DELETE_DISTANCE)
-        {
-            it = m_ActiveChunks.erase(it);
-            chunk->GetRenderObject()->m_bDelete = true;
-            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
-            std::unique_lock lock(m_WorkerLock);
-            m_WorkItems.push(work);
-            m_WorkerCV.notify_one();
-            lock.unlock();
-        }
-        else
-        {
-            it++;
-        }
-    }
+    CleanFarChunks();
 
     for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first; x++)
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
+             bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
             if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                m_UsedChunks.insert(pair2String(x, z));
                 std::unique_lock lock(m_WorkerLock);
                 m_WorkItems.push(work);
                 m_WorkerCV.notify_one();
@@ -525,41 +517,22 @@ void ChunkManager::MapMoveLeft()
 // x++
 void ChunkManager::MapMoveRight()
 {
-            // All items at the bottom the map are invalid
+    // All items at the bottom the map are invalid
     //std::vector<Chunk*> invalids;
     //printf("map move foreward\n");
-    auto it = m_ActiveChunks.begin();
-
-    while(it != m_ActiveChunks.end())
-    {
-        auto chunk = *it;
-        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > DELETE_DISTANCE)
-        {
-            it = m_ActiveChunks.erase(it);
-            chunk->GetRenderObject()->m_bDelete = true;
-            ChunkWorkItem* work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
-            std::unique_lock lock(m_WorkerLock);
-            m_WorkItems.push(work);
-            m_WorkerCV.notify_one();
-            lock.unlock();
-        }
-        else
-        {
-            it++;
-        }
-    }
+    CleanFarChunks();
 
     for (int x = m_CurrentChunk.first; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
             if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
+            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
+                m_UsedChunks.insert(pair2String(x, z));
                 std::unique_lock lock(m_WorkerLock);
                 m_WorkItems.push(work);
                 m_WorkerCV.notify_one();
@@ -578,8 +551,8 @@ ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(
 
 std::string pair2String(int x, int y)
 {
-    
-    return std::to_string(x) + std::to_string(y);
+    auto ret = std::to_string(x) + "~" + std::to_string(y);
+    return ret;
 }
 
 
