@@ -1,7 +1,5 @@
 #include "chunk.h"
 
-#define STB_PERLIN_IMPLEMENTATION
-#include "stb_perlin.h"
 
 
 extern GLManager gl;
@@ -23,7 +21,7 @@ std::unordered_set<std::string> ChunkManager::m_UsedChunks;
 ShaderProgram* ChunkManager::m_ChunkShader;
 Texture* ChunkManager::m_TextureAtlasDiffuse;
 Texture* ChunkManager::m_TextureAtlasSpecular;
-
+FastNoiseLite ChunkManager::m_ChunkHeightNoise;
 int init_count = 0;
 int delete_count = 0;
 
@@ -151,17 +149,19 @@ void Chunk::BlockGenVertices(Block &block, float x, float y, float z)
 
 void Chunk::GenerateChunk()
 {
-    
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
         {
-            for (int y = 0; y < 64; y++)
+            float noise = ChunkManager::m_ChunkHeightNoise.GetNoise(static_cast<float>(x+m_xCoord*CHUNK_WIDTH), static_cast<float>(z+m_zCoord*CHUNK_WIDTH));
+            int height = static_cast<int>(55+(noise*8));
+            for (int y = 0; y < height; y++)
             {
+                
                 auto& block = m_Blocks[x][y][z];
                 block.setType(BlockType::Dirt);
                 //printf("here %d,%d,%d\n", x, y, z);
-                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == 63)
+                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == height-1)
                     block.setActive(true);
                 if (block.isActive())
                     BlockGenVertices(block, x, y, z);
@@ -174,6 +174,7 @@ void Chunk::GenerateChunk()
 ChunkManager::ChunkManager()
 {
 
+    m_ChunkHeightNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     for (int i = 0; i < CHUNK_MANAGER_THREADCOUNT; i++)
     {
         m_WorkerThreads[i] = std::thread(ChunkWorkerThread);
@@ -358,7 +359,7 @@ void ChunkManager::PerFrame()
         
         if (m_ActiveChunks.size() >= MAX_CHUNKS)
         { 
-            logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + "Discarding newly generated chunk.");
+            logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + " Discarding newly generated chunk.");
             delete chunk;
             break;
         }
@@ -412,7 +413,7 @@ void ChunkManager::MapMoveForward()
     {
         for (int z = m_CurrentChunk.second; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
             if (used) continue;
 
 
@@ -460,7 +461,7 @@ void ChunkManager::MapMoveBackward()
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
             if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
@@ -506,7 +507,7 @@ void ChunkManager::MapMoveLeft()
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
             if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))
@@ -553,7 +554,7 @@ void ChunkManager::MapMoveRight()
     {
         for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
         {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0;
+            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || m_ActiveChunks.size() >= MAX_CHUNKS;
             if (used) continue;
             if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
             glm::vec2(static_cast<float>(x), static_cast<float>(z) < CHUNK_DISTANCE)))

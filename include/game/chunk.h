@@ -10,11 +10,12 @@
 #include "renderobject.h"
 #include "world.h"
 #include "block.h"
+#include "FastNoiseLite.h"
 #define MAX_CHUNK_HEIGHT 64
 #define MIN_CHUNK_HEIGHT 0
 #define CHUNK_WIDTH 16
 #define PACK_FACEBLOCK(face, blocktype) ((face << 16) | (blocktype & 0xFFFF))
-
+#define DEFAULT_NOISE_SEED 1337
 
 
 struct ChunkVertex
@@ -110,13 +111,10 @@ public:
     void MapMoveRight();
     
     std::vector<Chunk*> m_ActiveChunks;
-    
-
     std::pair<int, int> m_CurrentChunk;
-private:
+    static FastNoiseLite m_ChunkHeightNoise;
     void AddChunkToRenderer(Chunk* chunk);
     void RemoveChunkFromRenderer(Chunk* chunk);
-
     static void ChunkWorkerThread();
     static std::unordered_set<std::string> m_UsedChunks;
     static std::condition_variable m_WorkerCV;

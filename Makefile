@@ -1,5 +1,5 @@
 CC=g++
-CC_FLAGS=-std=c++17 -ldl -lglfw -lfreetype -lassimp -g
+CC_FLAGS=-std=c++17 -ldl -lglfw -lfreetype -lassimp -g -l:libFastNoise.a
 LD=ld
 BUILD_DIR=./build/
 TARGET_FILE=triangle
@@ -9,8 +9,9 @@ OBJS=$(patsubst $(SRC_DIR)%.cpp, $(BUILD_DIR)/%.o,$(SRCS))
 DEPS := $(wildcard include/*.h)
 INCLUDES=\
 -I./include/ \
--I./include/imgui/ \
--I./include/KHR/ \
+-I./include/dependencies/ \
+-I./include/dependencies/imgui/ \
+-I./include/dependencies/KHR/ \
 -I./include/opengl/ \
 -I./include/game/ \
 -I./include/dev/ \
