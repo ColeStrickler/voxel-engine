@@ -22,7 +22,8 @@ enum ShaderDataType
     Int2, 
     Int3, 
     Int4, 
-    Bool
+    Bool,
+    UnsignedByte
 };
 
 
@@ -41,6 +42,7 @@ static uint32_t ShaderDataTypeSize(ShaderDataType type)
 		case ShaderDataType::Int3:     return 4 * 3;
 		case ShaderDataType::Int4:     return 4 * 4;
 		case ShaderDataType::Bool:     return 1;
+        case ShaderDataType::UnsignedByte: return 1;
 	}
 	return 0;
 }
@@ -92,7 +94,7 @@ class BufferElement
 public:
     BufferElement(const std::string& Name, ShaderDataType type, bool normalized);
     ~BufferElement();
-    std::string GetName() const {return m_Name;}
+    //std::string GetName() const {return m_Name;}
     ShaderDataType GetType() const {return m_Type;}
     const unsigned int& GetCount() const {return m_Count;}
     uint32_t m_Size;
@@ -100,7 +102,6 @@ public:
     bool m_Normalized;
     unsigned int m_Count;
 private:
-    std::string m_Name;
     ShaderDataType m_Type;
 };
 

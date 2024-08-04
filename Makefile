@@ -1,5 +1,5 @@
 CC=g++
-CC_FLAGS=-std=c++17 -ldl -lglfw -lfreetype -lassimp -g -l:libFastNoise.a
+CC_FLAGS=-std=c++17 -O3 -ldl -lglfw -lfreetype -lassimp -g -l:libFastNoise.a
 LD=ld
 BUILD_DIR=./build/
 TARGET_FILE=triangle

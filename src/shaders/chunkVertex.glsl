@@ -1,8 +1,7 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in int aFaceBlockType;
-layout (location = 2) in int aReserved;
-layout (location = 3) in vec2 aTexCoords;
+layout (location = 2) in vec2 aTexCoords;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
@@ -66,7 +65,7 @@ vec2 GetTextureCoords(int face, int blocktype)
 
 void main()
 {
-    int face = ((aFaceBlockType >> 16) & 0xFFFF);
+    int face = ((aFaceBlockType >> 24) & 0xFF);
     int blocktype = (aFaceBlockType & 0xFFFF);
 
     FragPos = vec3(model * vec4(aPos, 1.0)); // world space * model transform gives us position of fragment

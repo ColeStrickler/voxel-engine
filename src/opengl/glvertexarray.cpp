@@ -62,4 +62,5 @@ void VertexArray::AddVertexBuffer(VertexBuffer* vertex_buffer)
         index++;
     }
     
+    
 }

@@ -77,7 +77,7 @@ void IndexBuffer::Unbind() const
 }
 
 BufferElement::BufferElement(const std::string& Name, ShaderDataType type, bool normalized) :
-    m_Offset(0), m_Name(Name), m_Type(type), m_Size(ShaderDataTypeSize(type)), m_Normalized(normalized), m_Count(ShaderDataTypeCount(type))
+    m_Offset(0), m_Type(type), m_Size(ShaderDataTypeSize(type)), m_Normalized(normalized), m_Count(ShaderDataTypeCount(type))
 {
 
 }

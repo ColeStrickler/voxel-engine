@@ -7,11 +7,6 @@ Block::Block() : m_bIsActive(false)
 {
 }
 
-Block::Block(BlockType type) : m_Type(type)
-{
-    setActive(false);
-}
-
 Block::~Block()
 {
 }

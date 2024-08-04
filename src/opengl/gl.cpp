@@ -337,6 +337,12 @@ bool Camera::SetMVP(ShaderProgram *prog)
     return true;
 }
 
+void Camera::ChangeViewDistance(float distance)
+{
+    ViewDistance = distance;
+    m_Projection = glm::perspective(glm::radians(45.0f), m_ScreenWidth / m_ScreenHeight, 0.1f, ViewDistance);
+}
+
 std::string Camera::FetchLog()
 {
     return m_Log;

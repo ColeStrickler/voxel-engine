@@ -4,6 +4,7 @@ GUI GUI_Manager;
 extern Renderer renderer;
 extern Logger logger;
 extern Profiler profiler;
+extern GLManager gl;
 LogTarget GUI::m_LogTarget;
 bool GUI::m_bRunLogThread;
 std::thread GUI::m_LogThread;
@@ -11,6 +12,7 @@ std::thread GUI::m_LogThread;
 extern int MAX_CHUNKS;
 extern float CHUNK_DISTANCE;
 extern float DELETE_DISTANCE;
+extern float ViewDistance;
 
 bool Vec3Slider(glm::vec3* v, const std::string& x_label, const std::string& y_label, const std::string& z_label, float limit = 100.0f, float floor = -100.0f)
 {
@@ -195,9 +197,14 @@ void GUI::DisplayChunkManagementOptions()
     if (ImGui::BeginPopupModal("Function Profiling Statistics", &open, ImGuiWindowFlags_None)) {
 
         ImGui::SetWindowSize(ImVec2(600, 400));
-        ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 1000);
-        ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 16.0f);
-        ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 16.0f);
+        ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 8000);
+        ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 32.0f);
+        ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 32.0f);
+        if(ImGui::SliderFloat("View Distance", &ViewDistance, 0.1f, 5000.0f))
+        {
+            auto camera = gl.GetCamera();
+            camera->ChangeViewDistance(ViewDistance);
+        }
 
         if (ImGui::Button("Close")) {
             ImGui::CloseCurrentPopup();

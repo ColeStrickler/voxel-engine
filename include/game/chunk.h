@@ -10,25 +10,32 @@
 #include "renderobject.h"
 #include "world.h"
 #include "block.h"
+#include "biome.h"
 #include "FastNoiseLite.h"
-#define MAX_CHUNK_HEIGHT 64
+#define MAX_CHUNK_HEIGHT 96
+#define DEFAULT_CHUNK_GROUND 64
 #define MIN_CHUNK_HEIGHT 0
 #define CHUNK_WIDTH 16
-#define PACK_FACEBLOCK(face, blocktype) ((face << 16) | (blocktype & 0xFFFF))
+#define PACK_FACEBLOCK(face, blocktype) (((face & 0xFF) << 24) | (blocktype & 0xFFFF))
 #define DEFAULT_NOISE_SEED 1337
 #define CAN_ALLOC_CHUNK (ChunkManager::m_ActiveChunks.size() < MAX_CHUNKS)
+
+// Stand-alone methods
+std::string pair2String(int x, int y);
+
+
+
+
 
 struct ChunkVertex
 {
     float position[3];
-    int faceBlockType; // [face|blockType] --> face is upper 16 bits, blockType is lower 16 bits
-    int reserved;
+    int face; // [face|blockType] --> face is upper 16 bits, blockType is lower 16 bits
+    //int reserved;
     float texCoords[2];
     // We do not need to store texture coords because we will infer them from the block type.
     // Each block gets 4 slots in the texture map, 1 for top, 2 for the sides, 1 for bottom
 }__attribute__((packed));
-
-std::string pair2String(int x, int y);
 
 class Chunk
 {
@@ -53,6 +60,7 @@ private:
     VertexBuffer* m_VB;
     VertexArray* m_VA;
     RenderObject* m_RenderObj;
+    static BlockType GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome);
 };
 
 
@@ -112,7 +120,7 @@ public:
     void MapMoveRight();
     
     static std::vector<Chunk*> m_ActiveChunks;
-    std::pair<int, int> m_CurrentChunk;
+    static std::pair<int, int> m_CurrentChunk;
     static FastNoiseLite m_ChunkHeightNoise;
     void AddChunkToRenderer(Chunk* chunk);
     void RemoveChunkFromRenderer(Chunk* chunk);
@@ -129,6 +137,10 @@ public:
     static Texture* m_TextureAtlasDiffuse;
     static Texture* m_TextureAtlasSpecular;
     std::thread m_WorkerThreads[CHUNK_MANAGER_THREADCOUNT];
+private:
+    static glm::vec2 CurrentChunkToVec2();
+    static float DistanceFromCurrentChunk(Chunk* chunk);
+    static float DistanceFromCurrentChunk(int x, int z);
 };
 
 

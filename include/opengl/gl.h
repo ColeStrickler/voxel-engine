@@ -46,6 +46,7 @@ public:
     // Camera();
     ~Camera();
     void ChangeScreenDimensions(float width, float height);
+    void ChangeViewDistance(float distance);
     bool SetMVP(ShaderProgram *prog);
     std::string FetchLog();
     void DumpLog();

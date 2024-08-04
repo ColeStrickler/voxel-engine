@@ -94,27 +94,9 @@ int main()
 
 
     
-    auto tex_front = Block::GenBlockVertices(BlockType::Dirt, BLOCKFACE::FRONT);
-    const std::vector<ChunkVertex> cube_Vertices = {
-    // Front Face
-        ChunkVertex{{-0.5f, -0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[0].first, tex_front[0].second}}, // Bottom-left
-        ChunkVertex{{ 0.5f, -0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[1].first, tex_front[1].second}}, // Bottom-right
-        ChunkVertex{{-0.5f,  0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[2].first, tex_front[2].second}}, // Top-left
-        ChunkVertex{{ 0.5f,  0.5f,  0.5f},PACK_FACEBLOCK(0, BlockType::Dirt), 0, {tex_front[3].first, tex_front[3].second}}, // Top-right
-};
 
    
 
-     BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-          new BufferElement("faceBlockType", ShaderDataType::Int, false),  new BufferElement("reserved", ShaderDataType::Int, false),\
-           new BufferElement("texCoord", ShaderDataType::Float2, false)});
-    VertexArray* tva = new VertexArray;
-    IndexBuffer* iva = new IndexBuffer((uint32_t*)cubeIndices.data(), BLOCK_INDICES_COUNT/6);
-    VertexBuffer* tex_vbo = new VertexBuffer((float*)cube_Vertices.data(), cube_Vertices.size()*sizeof(ChunkVertex));
-    tex_vbo->SetLayout(tex_layout);
-    tva->AddVertexBuffer(tex_vbo);
-    tva->AddIndexBuffer(iva);
-    RenderObject* t_obj = new RenderObject(tva, tex_vbo, &chunkShaderProgram, iva, OBJECTYPE::ChunkMesh);
     //l_obj->SetPosition({0.0, 0.0, 0.0});
     //renderer.AddRenderObject(t_obj);
 

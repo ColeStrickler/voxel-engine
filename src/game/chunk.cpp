@@ -23,6 +23,7 @@ Texture* ChunkManager::m_TextureAtlasDiffuse;
 Texture* ChunkManager::m_TextureAtlasSpecular;
 FastNoiseLite ChunkManager::m_ChunkHeightNoise;
 std::vector<Chunk*> ChunkManager::m_ActiveChunks;
+std::pair<int, int> ChunkManager::m_CurrentChunk;
 int init_count = 0;
 int delete_count = 0;
 
@@ -70,7 +71,7 @@ void Chunk::GenerateChunkMesh(ShaderProgram* sp)
 {
 
     BufferLayout* vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-          new BufferElement("faceBlockType", ShaderDataType::Int, false),  new BufferElement("reserved", ShaderDataType::Int, false),\
+          new BufferElement("faceBlockType", ShaderDataType::Int, false), \
            new BufferElement("texCoord", ShaderDataType::Float2, false)});
     m_IB = new IndexBuffer(m_Indices.data(), m_Indices.size());
     m_VB = new VertexBuffer((float*)m_Vertices.data(), m_Vertices.size()*sizeof(ChunkVertex));
@@ -115,37 +116,55 @@ void Chunk::BlockGenVertices(Block &block, float x, float y, float z)
 
     std::vector<ChunkVertex> vertvec = {
         // Front Face      
-        ChunkVertex {{x+-0.5f, y+-0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), 0, {tex_front[0].first, tex_front[0].second}}, // Bottom-left
-        ChunkVertex {{x+ 0.5f, y+-0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), 0, {tex_front[1].first, tex_front[1].second}}, // Bottom-right
-        ChunkVertex {{x+-0.5f, y+ 0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), 0, {tex_front[2].first, tex_front[2].second}}, // Top-left
-        ChunkVertex {{x+ 0.5f, y+ 0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), 0, {tex_front[3].first, tex_front[3].second}}, // Top-right
+        ChunkVertex {{x+-0.5f, y+-0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[0].first, tex_front[0].second}}, // Bottom-left
+        ChunkVertex {{x+ 0.5f, y+-0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[1].first, tex_front[1].second}}, // Bottom-right
+        ChunkVertex {{x+-0.5f, y+ 0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[2].first, tex_front[2].second}}, // Top-left
+        ChunkVertex {{x+ 0.5f, y+ 0.5f,  z+0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[3].first, tex_front[3].second}}, // Top-right
         // Back Face
-        ChunkVertex {{x+-0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), 0, {tex_back[0].first, tex_back[0].second}}, // Bottom-left
-        ChunkVertex {{x+ 0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), 0, {tex_back[1].first, tex_back[1].second}}, // Bottom-right
-        ChunkVertex {{x+-0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), 0, {tex_back[2].first, tex_back[2].second}}, // Top-left
-        ChunkVertex {{x+ 0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), 0, {tex_back[3].first, tex_back[3].second}}, // Top-right
+        ChunkVertex {{x+-0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[0].first, tex_back[0].second}}, // Bottom-left
+        ChunkVertex {{x+ 0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[1].first, tex_back[1].second}}, // Bottom-right
+        ChunkVertex {{x+-0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[2].first, tex_back[2].second}}, // Top-left
+        ChunkVertex {{x+ 0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[3].first, tex_back[3].second}}, // Top-right
         // Left Face
-        ChunkVertex{{x+-0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), 0, {tex_left[0].first, tex_left[0].second}}, // Bottom-left
-        ChunkVertex{{x+-0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), 0, {tex_left[1].first, tex_left[1].second}}, // Bottom-right
-        ChunkVertex{{x+-0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), 0, {tex_left[2].first, tex_left[2].second}}, // Top-left
-        ChunkVertex{{x+-0.5f, y+ 0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), 0, {tex_left[3].first, tex_left[3].second}}, // Top-right
+        ChunkVertex{{x+-0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[0].first, tex_left[0].second}}, // Bottom-left
+        ChunkVertex{{x+-0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[1].first, tex_left[1].second}}, // Bottom-right
+        ChunkVertex{{x+-0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[2].first, tex_left[2].second}}, // Top-left
+        ChunkVertex{{x+-0.5f, y+ 0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[3].first, tex_left[3].second}}, // Top-right
         // Right Face
-        ChunkVertex{{x+0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), 0,{tex_right[0].first, tex_right[0].second}}, // Bottom-left
-        ChunkVertex{{x+0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), 0,{tex_right[1].first, tex_right[1].second}}, // Bottom-right
-        ChunkVertex{{x+0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), 0,{tex_right[2].first, tex_right[2].second}}, // Top-left
-        ChunkVertex{{x+0.5f, y+ 0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), 0,{tex_right[3].first, tex_right[3].second}}, // Top-right
+        ChunkVertex{{x+0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[0].first, tex_right[0].second}}, // Bottom-left
+        ChunkVertex{{x+0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[1].first, tex_right[1].second}}, // Bottom-right
+        ChunkVertex{{x+0.5f, y+ 0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[2].first, tex_right[2].second}}, // Top-left
+        ChunkVertex{{x+0.5f, y+ 0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[3].first, tex_right[3].second}}, // Top-right
         // Top Face
-        ChunkVertex {{x+-0.5f,  y+0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), 0, {tex_top[0].first, tex_top[0].second}}, // Bottom-left
-        ChunkVertex {{x+ 0.5f,  y+0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), 0, {tex_top[1].first, tex_top[1].second}}, // Bottom-right
-        ChunkVertex {{x+-0.5f,  y+0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), 0, {tex_top[2].first, tex_top[2].second}}, // Top-left
-        ChunkVertex {{x+ 0.5f,  y+0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), 0, {tex_top[3].first, tex_top[3].second}}, // Top-right
+        ChunkVertex {{x+-0.5f,  y+0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[0].first, tex_top[0].second}}, // Bottom-left
+        ChunkVertex {{x+ 0.5f,  y+0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[1].first, tex_top[1].second}}, // Bottom-right
+        ChunkVertex {{x+-0.5f,  y+0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[2].first, tex_top[2].second}}, // Top-left
+        ChunkVertex {{x+ 0.5f,  y+0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[3].first, tex_top[3].second}}, // Top-right
         // Bottom Face
-        ChunkVertex{{x+-0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), 0, {tex_bottom[0].first, tex_bottom[0].second}}, // Bottom-left
-        ChunkVertex{{x+ 0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), 0, {tex_bottom[1].first, tex_bottom[1].second}}, // Bottom-right
-        ChunkVertex{{x+-0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), 0, {tex_bottom[2].first, tex_bottom[2].second}}, // Top-left
-        ChunkVertex{{x+ 0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), 0, {tex_bottom[3].first, tex_bottom[3].second}}, // Top-right
+        ChunkVertex{{x+-0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[0].first, tex_bottom[0].second}}, // Bottom-left
+        ChunkVertex{{x+ 0.5f, y+-0.5f, z+-0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[1].first, tex_bottom[1].second}}, // Bottom-right
+        ChunkVertex{{x+-0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[2].first, tex_bottom[2].second}}, // Top-left
+        ChunkVertex{{x+ 0.5f, y+-0.5f, z+ 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[3].first, tex_bottom[3].second}}, // Top-right
     };
     m_Vertices.insert(m_Vertices.end(), vertvec.begin(), vertvec.end());
+}
+
+BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
+{
+    switch (biome)
+    {
+        case BIOMETYPE::HILLS:
+            return BIOME::Hills_GetBlockType(y, surface);
+        case BIOMETYPE::PLAINS:
+        {
+            return BlockType::Dirt;
+        }
+        default:
+        {
+            logger.Log(LOGTYPE::ERROR, "Chunk::GetBlockType() --> Got invalid BIOME.");
+            return BlockType::Dirt;
+        }
+    }
 }
 
 void Chunk::GenerateChunk()
@@ -154,13 +173,14 @@ void Chunk::GenerateChunk()
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
         {
+            BIOMETYPE biome = BIOMETYPE::HILLS;
             float noise = ChunkManager::m_ChunkHeightNoise.GetNoise(static_cast<float>(x+m_xCoord*CHUNK_WIDTH), static_cast<float>(z+m_zCoord*CHUNK_WIDTH));
-            int height = static_cast<int>(55+(noise*8));
-            for (int y = 0; y < height; y++)
+            int surface = static_cast<int>(DEFAULT_CHUNK_GROUND+(noise*BIOME::GetSurfaceVariation(biome)));
+            for (int y = 0; y < surface; y++)
             {
                 auto& block = m_Blocks[x][y][z];
-                block.setType(BlockType::Dirt);
-                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == height-1)
+                block.setType(GetBlockType(x, y, z, surface-1, biome));
+                if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == surface-1)
                     block.setActive(true);
                 if (block.isActive())
                     BlockGenVertices(block, x, y, z);
@@ -235,6 +255,23 @@ void ChunkManager::AddChunkToRenderer(Chunk *chunk)
     renderer.AddRenderObject(renderObj);
 }
 
+
+glm::vec2 ChunkManager::CurrentChunkToVec2()
+{
+    return glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second));
+}
+
+float ChunkManager::DistanceFromCurrentChunk(Chunk* chunk)
+{
+    return glm::distance(chunk->GetPosition(), CurrentChunkToVec2());
+}
+
+float ChunkManager::DistanceFromCurrentChunk(int x, int z)
+{
+    return glm::distance(glm::vec2(static_cast<float>(x), static_cast<float>(z)), CurrentChunkToVec2());
+}
+
+
 void ChunkManager::ChunkWorkerThread()
 {
 
@@ -271,7 +308,7 @@ void ChunkManager::ChunkWorkerThread()
             case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
             {
                 init_count++;
-                if (CAN_ALLOC_CHUNK)
+                if (CAN_ALLOC_CHUNK &&  DistanceFromCurrentChunk(work->x, work->z) < CHUNK_DISTANCE)
                 {
                     auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true); 
                     std::unique_lock flock(m_FinishedItemsLock);
@@ -292,6 +329,7 @@ void ChunkManager::ChunkWorkerThread()
         delete work;
     }
 }
+
 
 ChunkManager::~ChunkManager()
 {
@@ -389,8 +427,7 @@ void ChunkManager::CleanFarChunks()
     while(it != m_ActiveChunks.end())
     {
         auto chunk = *it;
-        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > DELETE_DISTANCE)
+        if (DistanceFromCurrentChunk(chunk) > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
             chunk->GetRenderObject()->m_bDelete = true;
@@ -414,8 +451,7 @@ void ChunkManager::CleanFarChunks(float div)
     while(it != m_ActiveChunks.end())
     {
         auto chunk = *it;
-        auto dist = glm::distance(chunk->GetPosition(), glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)));
-        if (dist > DELETE_DISTANCE/div)
+        if (DistanceFromCurrentChunk(chunk) > DELETE_DISTANCE/div)
         {
             it = m_ActiveChunks.erase(it);
             chunk->GetRenderObject()->m_bDelete = true;
@@ -448,8 +484,7 @@ void ChunkManager::MapMoveForward()
             if (used) continue;
 
 
-            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
+            if (DistanceFromCurrentChunk(x, z) < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
                 m_UsedChunks.insert(pair2String(x, z));
@@ -474,8 +509,7 @@ void ChunkManager::MapMoveBackward()
         {
             bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
             if (used) continue;
-            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
+            if (DistanceFromCurrentChunk(x, z)  < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
                  m_UsedChunks.insert(pair2String(x, z));
@@ -528,8 +562,7 @@ void ChunkManager::MapMoveRight()
         {
             bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
             if (used) continue;
-            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
+            if (DistanceFromCurrentChunk(x, z)  < CHUNK_DISTANCE)
             {
                 ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
                 m_UsedChunks.insert(pair2String(x, z));

@@ -32,7 +32,10 @@ struct BlockVertex {
 */
 const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes = {
     // front,back,left,right,top,bottom
-    {{0,1}, {0,1}, {0,1}, {0,1}, {0,0}, {0,1}},
+    {{0,1}, {0,1}, {0,1}, {0,1}, {0,0}, {0,2}}, // DirtSurface
+    {{0,2}, {0,2}, {0,2}, {0,2}, {0,2}, {0,2}}, // Dirt
+    {{0,3}, {0,3}, {0,3}, {0,3}, {0,3}, {0,3}}, // Stone
+
 };
 
 
@@ -46,6 +49,7 @@ const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes =
 
 enum BlockType
 {
+    DirtSurface,
     Dirt,
     Stone,
     Iron,
@@ -73,10 +77,9 @@ class Block
 {
 public:
     Block();
-    Block(BlockType type);
     ~Block();
     inline bool isActive() const {return m_bIsActive;};
-    inline void setActive(bool bActive);
+    void setActive(bool bActive);
     inline void setType(BlockType type) {m_Type = type;};
     inline BlockType getBlockType() const {return m_Type;}
     static std::vector<std::pair<float, float>> GenBlockVertices(BlockType blocktype, BLOCKFACE face);
