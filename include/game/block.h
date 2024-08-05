@@ -32,9 +32,14 @@ struct BlockVertex {
 */
 const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes = {
     // front,back,left,right,top,bottom
+    {},                                         // BLOCKNONE
     {{0,1}, {0,1}, {0,1}, {0,1}, {0,0}, {0,2}}, // DirtSurface
     {{0,2}, {0,2}, {0,2}, {0,2}, {0,2}, {0,2}}, // Dirt
     {{0,3}, {0,3}, {0,3}, {0,3}, {0,3}, {0,3}}, // Stone
+    {{0,4}, {0,4}, {0,4}, {0,4}, {0,4}, {0,4}}, // Iron
+    {{0,5}, {0,5}, {0,5}, {0,5}, {0,5}, {0,5}}, // Gold
+    {{0,6}, {0,6}, {0,6}, {0,6}, {0,6}, {0,6}}, // Coal
+    {{0,7}, {0,7}, {0,7}, {0,7}, {0,7}, {0,7}}, // Diamond
 
 };
 
@@ -49,12 +54,13 @@ const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes =
 
 enum BlockType
 {
+    BLOCKNONE,
     DirtSurface,
     Dirt,
     Stone,
     Iron,
-    Coal,
     Gold,
+    Coal,
     Diamond,
     OakWood,
     OakLeaf,

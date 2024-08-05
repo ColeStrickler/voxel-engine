@@ -1,4 +1,6 @@
 #include "biome.h"
+#include "chunk.h"
+
 
 int BIOME::GetSurfaceVariation(BIOMETYPE biome)
 {
@@ -10,12 +12,13 @@ int BIOME::GetSurfaceVariation(BIOMETYPE biome)
     }
 }
 
-BlockType BIOME::Hills_GetBlockType(int y, int surface)
+BlockType BIOME::Hills_GetBlockType(int x, int y, int z, int surface)
 {
     if (y == surface)
         return BlockType::DirtSurface;
     if (surface - y < 6)
         return BlockType::Dirt;
-    else return BlockType::Stone;
+    else
+        return BlockType::Stone;
     
 }

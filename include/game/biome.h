@@ -10,10 +10,8 @@ enum BIOMETYPE {
 namespace BIOME
 {
     int GetSurfaceVariation(BIOMETYPE biome);
-    BlockType Hills_GetBlockType(int y, int surface);
+    BlockType Hills_GetBlockType(int x, int y, int z, int surface);
 };
-
-
 
 
 

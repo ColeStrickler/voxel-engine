@@ -3,7 +3,7 @@
 extern Logger logger;
 
 
-Block::Block() : m_bIsActive(false)
+Block::Block() : m_bIsActive(false), m_Type(BlockType::BLOCKNONE)
 {
 }
 

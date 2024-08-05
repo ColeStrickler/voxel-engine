@@ -18,6 +18,10 @@ float util::Random()
     return dis(gen);
 }
 
+float util::RandomMax(float max)
+{
+    return Random()*max;
+}
 
 void util::PrintMat4(const glm::mat4& matrix) {
     const float* mat = glm::value_ptr(matrix);

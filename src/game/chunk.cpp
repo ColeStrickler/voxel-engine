@@ -24,6 +24,10 @@ Texture* ChunkManager::m_TextureAtlasSpecular;
 FastNoiseLite ChunkManager::m_ChunkHeightNoise;
 std::vector<Chunk*> ChunkManager::m_ActiveChunks;
 std::pair<int, int> ChunkManager::m_CurrentChunk;
+
+
+
+
 int init_count = 0;
 int delete_count = 0;
 
@@ -32,14 +36,14 @@ int delete_count = 0;
 #define HEIGHT_SCALE 96.0f // multiplier to adjust terrain
 #define SCALE 0.1f
 
-Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z)
+Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z), m_bHasDiamond(false)
 {
     
     GenerateChunk();
     GenerateChunkMesh(sp);
 }
 
-Chunk::Chunk(int x, int z, ShaderProgram* sp, bool delay): m_xCoord(x), m_zCoord(z)
+Chunk::Chunk(int x, int z, ShaderProgram* sp, bool delay): m_xCoord(x), m_zCoord(z), m_bHasDiamond(false)
 {
     GenerateChunk();
 
@@ -82,12 +86,14 @@ void Chunk::GenerateChunkMesh(ShaderProgram* sp)
     m_VA->AddIndexBuffer(m_IB);
     m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
     m_RenderObj->Translate(glm::vec3(static_cast<float>(m_xCoord*CHUNK_WIDTH), 0.0f, static_cast<float>(m_zCoord*CHUNK_WIDTH)));
+    if (m_bHasDiamond)
+        m_RenderObj->ToggleWireFrame();
 }
 
-void Chunk::BlockGenVertices(Block &block, float x, float y, float z)
+void Chunk::BlockGenVertices(BlockType blocktype, float x, float y, float z)
 {
    // printf("here %d, %d, %d\n", x, y, z);
-    auto type = block.getBlockType();
+    auto type = blocktype;
     std::vector<unsigned int> cubeIndices = {
         // Front Face
         0, 1, 2, 1, 3, 2,
@@ -107,12 +113,12 @@ void Chunk::BlockGenVertices(Block &block, float x, float y, float z)
     m_Indices.insert(m_Indices.end(), cubeIndices.begin(), cubeIndices.end());
 
     
-    auto tex_front = Block::GenBlockVertices(block.getBlockType(), BLOCKFACE::FRONT);
-    auto tex_back = Block::GenBlockVertices(block.getBlockType(), BLOCKFACE::BACK);
-    auto tex_left = Block::GenBlockVertices(block.getBlockType(), BLOCKFACE::LEFT);
-    auto tex_right = Block::GenBlockVertices(block.getBlockType(), BLOCKFACE::RIGHT);
-    auto tex_top = Block::GenBlockVertices(block.getBlockType(), BLOCKFACE::TOP);
-    auto tex_bottom = Block::GenBlockVertices(block.getBlockType(), BLOCKFACE::BOTTOM);
+    auto tex_front = Block::GenBlockVertices(type, BLOCKFACE::FRONT);
+    auto tex_back = Block::GenBlockVertices(type,  BLOCKFACE::BACK);
+    auto tex_left = Block::GenBlockVertices(type,  BLOCKFACE::LEFT);
+    auto tex_right = Block::GenBlockVertices(type,  BLOCKFACE::RIGHT);
+    auto tex_top = Block::GenBlockVertices(type,  BLOCKFACE::TOP);
+    auto tex_bottom = Block::GenBlockVertices(type, BLOCKFACE::BOTTOM);
 
     std::vector<ChunkVertex> vertvec = {
         // Front Face      
@@ -149,12 +155,80 @@ void Chunk::BlockGenVertices(Block &block, float x, float y, float z)
     m_Vertices.insert(m_Vertices.end(), vertvec.begin(), vertvec.end());
 }
 
+
+void Chunk::OrePopulatePass(std::vector<int> coordStart, Chunk* chunk)
+{
+    float noise = util::Random();
+    int y = coordStart[1];
+    if (ORE_CAN_GEN_IRON(noise, y))
+    {
+        OrePassFill(coordStart, BlockType::Iron, chunk);
+    }
+    else if (ORE_CAN_GEN_GOLD(noise, y))
+    {
+         OrePassFill(coordStart, BlockType::Gold, chunk);
+    }
+    else if (ORE_CAN_GEN_COAL(noise, y))
+    {
+         OrePassFill(coordStart, BlockType::Coal, chunk);
+    }
+    else if (ORE_CAN_GEN_DIAMOND(noise, y))
+    {
+        OrePassFill(coordStart, BlockType::Diamond, chunk);
+    }
+    else if (ORE_CAN_GEN_STONE(noise, y))
+        OrePassFill(coordStart, BlockType::Stone, chunk);
+}
+
+
+void Chunk::OrePassFill(std::vector<int> coordStart, BlockType ore, Chunk* chunk)
+{
+    int veinSize = static_cast<int>(util::RandomMax(OreGetVeinSize(ore)));
+    std::vector<std::vector<int>> dirs;
+    int x = coordStart[0];
+    int y = coordStart[1];
+    int z = coordStart[2];
+
+    for (int i = 0; i < veinSize; i++)
+    {
+        auto dir = OreDirections[util::RandomMax((OreDirections.size()-1))];
+        auto& nx = dir[0];
+        auto& ny = dir[1];
+        auto& nz = dir[2];
+        if (IS_IN_CHUNK(x+nx, y+ny, z+nz))
+        {
+            x += nx;
+            y += ny;
+            z += nz;
+            
+            auto& block = chunk->m_Blocks[x][y][z];
+            if (block.isActive() && ore == BlockType::Diamond)
+                chunk->m_bHasDiamond = true;
+            
+            block.setType(ore);
+        }
+    }
+}
+
+int Chunk::OreGetVeinSize(BlockType ore)
+{
+    switch(ore)
+    {
+        case BlockType::Iron: return ORE_IRON_MAX_VEIN;
+        case BlockType::Gold: return ORE_GOLD_MAX_VEIN;
+        case BlockType::Coal: return ORE_COAL_MAX_VEIN;
+        case BlockType::Diamond: return ORE_DIAMOND_MAX_VEIN;
+        case BlockType::Stone: return ORE_STONE_MAX_VEIN;
+        default: return 0;
+    }
+}
+
 BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 {
     switch (biome)
     {
         case BIOMETYPE::HILLS:
-            return BIOME::Hills_GetBlockType(y, surface);
+            return BIOME::Hills_GetBlockType(x, y, z, surface);
         case BIOMETYPE::PLAINS:
         {
             return BlockType::Dirt;
@@ -169,6 +243,10 @@ BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 
 void Chunk::GenerateChunk()
 {
+
+    std::vector<Block*> actives;
+    std::vector<std::vector<int>> activeCoords;
+    // Initial Generation
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
@@ -179,14 +257,36 @@ void Chunk::GenerateChunk()
             for (int y = 0; y < surface; y++)
             {
                 auto& block = m_Blocks[x][y][z];
-                block.setType(GetBlockType(x, y, z, surface-1, biome));
+                if ( block.getBlockType() == BlockType::BLOCKNONE)
+                    block.setType(GetBlockType(x, y, z, surface-1, biome));
+                bool doOrePass = util::Random() > ORE_PASS_THRESHOLD;
                 if (x == 0 || z == 0 || x == 15 || z == 15 || y==0 || y == surface-1)
                     block.setActive(true);
+
+                if (doOrePass)
+                    OrePopulatePass({x,y,z}, this);
                 if (block.isActive())
-                    BlockGenVertices(block, x, y, z);
+                {
+                    actives.push_back(&block);
+                    activeCoords.push_back({x,y,z});
+                }
             }
         }
     }
+    for (int i = 0; i < actives.size(); i++)
+    {
+        auto& block = actives[i];
+        auto& coords = activeCoords[i];
+
+        auto& x = coords[0];
+        auto& y = coords[1];
+        auto& z = coords[2];
+        BlockGenVertices(block->getBlockType(), x, y, z);
+    }
+
+
+
+
    
 }
 
@@ -379,7 +479,6 @@ void ChunkManager::PerFrame()
         for (auto& td: m_ToDeleteList)
         {
             m_UsedChunks.erase(td);
-            printf("erasing %s\n", td.c_str());
         }
         m_ToDeleteList.clear();
     }
@@ -399,10 +498,6 @@ void ChunkManager::PerFrame()
             delete chunk;
             CleanFarChunks(1.6f);
             break;
-        }
-        else
-        {
-            printf("MAX_CHUNKS %ld\n", MAX_CHUNKS);
         }
         chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
         m_ActiveChunks.push_back(chunk);

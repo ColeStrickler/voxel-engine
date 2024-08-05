@@ -19,10 +19,56 @@
 #define PACK_FACEBLOCK(face, blocktype) (((face & 0xFF) << 24) | (blocktype & 0xFFFF))
 #define DEFAULT_NOISE_SEED 1337
 #define CAN_ALLOC_CHUNK (ChunkManager::m_ActiveChunks.size() < MAX_CHUNKS)
+#define IS_IN_CHUNK(x, y, z) ((x >= 0 && x < CHUNK_WIDTH) && (z >= 0 && z < CHUNK_WIDTH) && (y >= 0 && y < MAX_CHUNK_HEIGHT))
+
 
 // Stand-alone methods
 std::string pair2String(int x, int y);
 
+
+
+/*
+    ORE GENERATION RATE
+*/
+static const std::vector<std::vector<int>> OreDirections =  {
+        {0, 0, 0},
+        {1, 0, 0}, {0, 1, 0}, {0, 0, 1},
+        {-1, 0, 0}, {0, -1, 0}, {0, 0, -1},
+        {1, 1, 0}, {1, 0, 1}, {0, 1, 1},
+        {-1, -1, 0}, {-1, 0, -1}, {0, -1, -1},
+        {1, -1, 0}, {1, 0, -1}, {0, 1, -1},
+        {-1, 1, 0}, {-1, 0, 1}, {0, -1, 1},
+        {1, 1, 1}, {1, 1, -1}, {1, -1, 1},
+        {1, -1, -1}, {-1, 1, 1}, {-1, 1, -1},
+        {-1, -1, 1}, {-1, -1, -1}
+};
+#define ORE_PASS_THRESHOLD 0.98f
+#define ORE_IRON_MAX_VEIN 9
+#define ORE_IRON_MIN_DEPTH 48
+#define ORE_IRON_GEN_RATE (0.92f)
+#define ORE_CAN_GEN_IRON(noise, y) ((noise > ORE_IRON_GEN_RATE) && (y < ORE_IRON_MIN_DEPTH))
+
+
+#define ORE_GOLD_MAX_VEIN 6
+#define ORE_GOLD_MIN_DEPTH 32
+#define ORE_GOLD_GEN_RATE (ORE_IRON_GEN_RATE-.02f)
+#define ORE_CAN_GEN_GOLD(noise, y) ((noise > ORE_GOLD_GEN_RATE) && (y < ORE_GOLD_MIN_DEPTH))
+
+
+#define ORE_COAL_MAX_VEIN 30
+#define ORE_COAL_MIN_DEPTH 48
+#define ORE_COAL_GEN_RATE (ORE_GOLD_GEN_RATE - 0.12f)
+#define ORE_CAN_GEN_COAL(noise, y) ((noise > ORE_COAL_GEN_RATE) && (y < ORE_COAL_MIN_DEPTH))
+
+#define ORE_DIAMOND_MAX_VEIN 12
+#define ORE_DIAMOND_MIN_DEPTH 16
+#define ORE_DIAMOND_GEN_RATE (ORE_COAL_GEN_RATE - 0.001f)
+#define ORE_CAN_GEN_DIAMOND(noise, y) ((noise > ORE_DIAMOND_GEN_RATE) && (y < ORE_DIAMOND_MIN_DEPTH))
+
+#define ORE_STONE_MAX_VEIN 25
+#define ORE_STONE_MIN_DEPTH 56
+#define ORE_STONE_GEN_RATE (ORE_DIAMOND_GEN_RATE - 0.005f)
+#define ORE_CAN_GEN_STONE(noise, y) ((noise > ORE_STONE_GEN_RATE) && (y < ORE_STONE_MIN_DEPTH))
 
 
 
@@ -48,11 +94,16 @@ public:
     std::string GetPositionAsString();
     RenderObject* GetRenderObject() { return m_RenderObj; }
     void GenerateChunkMesh(ShaderProgram* sp);
+    bool m_bHasDiamond;
 private:
     int m_xCoord;
     int m_zCoord;
+    
     void GenerateChunk();
-    void BlockGenVertices(Block& block, float x, float y, float z);
+    void BlockGenVertices(BlockType type, float x, float y, float z);
+    static void OrePopulatePass(std::vector<int> coordStart, Chunk* chunk);
+    static void OrePassFill(std::vector<int> coordStart, BlockType ore, Chunk* chunk);
+    static int OreGetVeinSize(BlockType ore);
     std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
     Block m_Blocks[CHUNK_WIDTH][MAX_CHUNK_HEIGHT][CHUNK_WIDTH];
@@ -87,7 +138,6 @@ enum CHUNK_WORKER_CMD
     ALLOC,
     UPDATE,
 };
-
 
 
 

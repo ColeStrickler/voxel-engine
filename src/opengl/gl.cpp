@@ -243,6 +243,10 @@ void GLManager::DisplayGlStats()
 
         std::string MEMORY_USAGE = "Memory Usage: " + std::to_string(util::GetMemoryUsageKb()) +"Kb";
         renderer.RenderText(MEMORY_USAGE.c_str(), 30.0f, screen_height - 60.0f, 0.6f, text_color);
+
+        auto cameraPos = GetCamera()->GetPosition();
+        std::string POSITION = "X: " + std::to_string(cameraPos.x) + " Y: " + std::to_string(cameraPos.y) + " Z: " + std::to_string(cameraPos.z);
+        renderer.RenderText(POSITION.c_str(), 30.0f, screen_height - 90.0f, 0.6f, text_color);
     }
     
 }
@@ -346,6 +350,11 @@ void Camera::ChangeViewDistance(float distance)
 std::string Camera::FetchLog()
 {
     return m_Log;
+}
+
+void Camera::SetPosition(glm::vec3 pos)
+{
+    m_CameraPos = pos;
 }
 
 void Camera::DumpLog()

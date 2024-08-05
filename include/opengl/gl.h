@@ -49,6 +49,7 @@ public:
     void ChangeViewDistance(float distance);
     bool SetMVP(ShaderProgram *prog);
     std::string FetchLog();
+    void SetPosition(glm::vec3 pos);
     void DumpLog();
     void ChangeMoveSpeed(float speed);
     glm::vec3 GetPosition() const;

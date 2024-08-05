@@ -23,6 +23,7 @@ namespace util
 {
     std::string getcwd();
     float Random();
+    float RandomMax(float max);
     void PrintMat4(const glm::mat4& matrix);
     void checkGLError();
     uint32_t GetMemoryUsageKb();
