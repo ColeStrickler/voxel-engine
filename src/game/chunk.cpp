@@ -28,9 +28,6 @@ std::pair<int, int> ChunkManager::m_CurrentChunk;
 
 
 
-int init_count = 0;
-int delete_count = 0;
-
 
 #define DEFAULT_CHUNK_GROUND 64
 #define HEIGHT_SCALE 96.0f // multiplier to adjust terrain
@@ -400,13 +397,11 @@ void ChunkManager::ChunkWorkerThread()
                 }
                 
                 delete work->chunk;
-                delete_count++;
                 //printf("difference free %ld 0x%x\n", int(util::GetMemoryUsageKb())-before, work->chunk);
                 break;
             }
             case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
             {
-                init_count++;
                 if (CAN_ALLOC_CHUNK &&  DistanceFromCurrentChunk(work->x, work->z) < CHUNK_DISTANCE)
                 {
                     auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true); 
@@ -479,16 +474,14 @@ void ChunkManager::PerFrame()
     std::unique_lock lock(m_FinishedItemsLock);
     while(m_FinishedWork.size())
     {
-        auto chunk = m_FinishedWork.front();
-        m_FinishedWork.pop();
-        
         if (m_ActiveChunks.size() >= MAX_CHUNKS)
         { 
             logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + " Discarding newly generated chunk.");
-            delete chunk;
             CleanFarChunks(1.6f);
             break;
         }
+        auto chunk = m_FinishedWork.front();
+        m_FinishedWork.pop();
         chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
         m_ActiveChunks.push_back(chunk);
 
@@ -557,26 +550,24 @@ void ChunkManager::CleanFarChunks(float div)
 // z++
 void ChunkManager::MapMove()
 {
+
     // All items at the bottom the map are invalid
     CleanFarChunks();
     
-
+    std::vector<ChunkWorkItem*> workItems;
     for (int x = 0; x <= CHUNK_DISTANCE; x++)
     {
         
         // /if (!CAN_ALLOC_CHUNK || CHUNK_WORKER_QUEUE_FULL) printf("break\n");break;
         auto px = m_CurrentChunk.first + x;
         auto nx = m_CurrentChunk.first - x;
-        printf("yolo\n");
         for (int z = 0; z <= CHUNK_DISTANCE; z++)
         {
-            printf("iunside\n");
             if (!CAN_ALLOC_CHUNK || CHUNK_WORKER_QUEUE_FULL) {break;}
 
             auto pz = m_CurrentChunk.second + z;
             auto nz = m_CurrentChunk.second - z;
             std::vector<std::vector<int>> locations = {{px,pz}, {nx, pz}, {px, nz}, {nx, nz}};
-            printf("pos size %d\n", locations.size());
             for (auto& pos : locations)
             {
                 
@@ -584,19 +575,32 @@ void ChunkManager::MapMove()
                 auto cx = pos[0];
                 auto cz = pos[1];
                 bool used = m_UsedChunks.count(pair2String(cx,cz)) > 0;
-                if (used) continue;
+                if (used)
+                    continue;
                 if (DistanceFromCurrentChunk(cx, cz) < CHUNK_DISTANCE)
                 {
                     ChunkWorkItem* work = new ChunkWorkItem(cx, cz, CHUNK_WORKER_CMD::ALLOC);
                     m_UsedChunks.insert(pair2String(cx, cz));
-                    std::unique_lock lock(m_WorkerLock);
-                    m_WorkItems.push(work);
-                    m_WorkerCV.notify_one();
-                    lock.unlock();
+                    workItems.push_back(work); // save for post-processing
                 }
             }
         }
     }
+    // if we could offload this sorting to the worker threads and a single work item that would be good
+    std::sort(workItems.begin(), workItems.end(), [](ChunkWorkItem* a, ChunkWorkItem* b){
+        float distA = DistanceFromCurrentChunk(a->x, a->z);
+        float distB = DistanceFromCurrentChunk(b->x, b->z);
+        return distA < distB;
+    });
+
+    for (auto& work : workItems)
+    {
+        std::unique_lock lock(m_WorkerLock);
+        m_WorkItems.push(work);
+        m_WorkerCV.notify_one();
+        lock.unlock();
+    }
+
 }
 
 ChunkWorkItem::ChunkWorkItem(Chunk *nchunk, CHUNK_WORKER_CMD wcmd)  : chunk(nchunk), cmd(wcmd)

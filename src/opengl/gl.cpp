@@ -3,6 +3,9 @@
 extern GLManager gl;
 extern Renderer renderer;
 extern GUI GUI_Manager;
+
+float DEFAULT_MOVE_SPEED = DEFAULT_MOVE_SPEED_;
+
 /*
     Declarations for GLManager static class variables
 */
@@ -14,7 +17,7 @@ float GLManager::m_LastX = 0.0f;
 float GLManager::m_LastY = 0.0f;
 std::unordered_map<int, std::function<void()>> GLManager::m_KeyCallbacks;
 
-GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(static_cast<float>(window_height), static_cast<float>(window_width), DEFUALT_MOVE_SPEED, this)),
+GLManager::GLManager() : m_DeltaTime(0.0f), m_LastTime(0.0f), m_Camera(Camera(static_cast<float>(window_height), static_cast<float>(window_width),DEFAULT_MOVE_SPEED, this)),
     m_ViewLock(false), m_bShowGlStats(false)
 {
     GLFW_Init();
@@ -404,7 +407,7 @@ void Camera::CameraHandleMouseMovement(float xoffset, float yoffset)
 void Camera::CameraHandleKey_W()
 {
     float delta_time = m_Manager->GetDeltaTime();
-    float speed = delta_time * m_MoveSpeed;
+    float speed = delta_time * DEFAULT_MOVE_SPEED;
     m_CameraPos += (speed * m_CameraFront);
     // UpdateCameraVectors();
     // GetViewMatrix();
@@ -414,7 +417,7 @@ void Camera::CameraHandleKey_W()
 void Camera::CameraHandleKey_A()
 {
     float delta_time = m_Manager->GetDeltaTime();
-    float speed = delta_time * m_MoveSpeed;
+    float speed = delta_time * DEFAULT_MOVE_SPEED;
     m_CameraPos -= (m_CameraRight * speed);
     // UpdateCameraVectors();
     // GetViewMatrix();
@@ -423,7 +426,7 @@ void Camera::CameraHandleKey_A()
 void Camera::CameraHandleKey_S()
 {
     float delta_time = m_Manager->GetDeltaTime();
-    float speed = delta_time * m_MoveSpeed;
+    float speed = delta_time * DEFAULT_MOVE_SPEED;
     m_CameraPos -= (speed * m_CameraFront);
     // UpdateCameraVectors();
     // GetViewMatrix();
@@ -432,7 +435,7 @@ void Camera::CameraHandleKey_S()
 void Camera::CameraHandleKey_D()
 {
     float delta_time = m_Manager->GetDeltaTime();
-    float speed = delta_time * m_MoveSpeed;
+    float speed = delta_time * DEFAULT_MOVE_SPEED;
     /*
         Get a vector that is orthogonal to both the CameraUp and the direction the camera is pointing
         via the cross product

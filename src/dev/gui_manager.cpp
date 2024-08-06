@@ -13,6 +13,7 @@ extern int MAX_CHUNKS;
 extern float CHUNK_DISTANCE;
 extern float DELETE_DISTANCE;
 extern float ViewDistance;
+extern float DEFAULT_MOVE_SPEED;
 
 bool Vec3Slider(glm::vec3* v, const std::string& x_label, const std::string& y_label, const std::string& z_label, float limit = 100.0f, float floor = -100.0f)
 {
@@ -197,6 +198,7 @@ void GUI::DisplayChunkManagementOptions()
     if (ImGui::BeginPopupModal("Function Profiling Statistics", &open, ImGuiWindowFlags_None)) {
 
         ImGui::SetWindowSize(ImVec2(600, 400));
+        ImGui::SliderFloat("Move Speed", &DEFAULT_MOVE_SPEED, 0.0f, 200.0f);
         ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 20000);
         ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 48.0f);
         ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 48.0f);

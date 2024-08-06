@@ -17,13 +17,13 @@
 #include "gui_manager.h"
 #define DEFAULT_WINDOW_WIDTH 1200U
 #define DEFAULT_WINDOW_HEIGHT 900U
-#define DEFUALT_MOVE_SPEED 40.0f
+#define DEFAULT_MOVE_SPEED_ 40.0f
 #define DEFAULT_MOUSE_SENSITIVITY 0.10f
 #define DEFAULT_OPENGL_VERSION_MAJOR 4
 #define DEFAULT_OPENGL_VERSION_MINOR 5
 #define MOUSE_CLICK_OBJ_SEL_THRESHOLD 10.0f
 
-static float ViewDistance = 256.0f;
+static float ViewDistance = 2000.0f;
 
 class GLManager;
 

@@ -13,7 +13,6 @@
 #include "profiler.h"
 #include "chunk.h"
 
-
 struct ObjectSelectionOptions
 {
     ObjectSelectionOptions() 
