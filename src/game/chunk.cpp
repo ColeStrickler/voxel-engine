@@ -22,6 +22,7 @@ ShaderProgram* ChunkManager::m_ChunkShader;
 Texture* ChunkManager::m_TextureAtlasDiffuse;
 Texture* ChunkManager::m_TextureAtlasSpecular;
 FastNoiseLite ChunkManager::m_ChunkHeightNoise;
+FastNoiseLite ChunkManager::m_BiomeNoise;
 std::vector<Chunk*> ChunkManager::m_ActiveChunks;
 std::pair<int, int> ChunkManager::m_CurrentChunk;
 
@@ -219,6 +220,14 @@ int Chunk::OreGetVeinSize(BlockType ore)
     }
 }
 
+BIOMETYPE Chunk::BiomeSelect(float biomeNoise)
+{
+    if (biomeNoise < 0.0f)
+        return BIOMETYPE::HILLS;
+    else
+        return BIOMETYPE::PLAINS;
+}
+
 BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 {
     switch (biome)
@@ -242,12 +251,15 @@ void Chunk::GenerateChunk()
 
     std::vector<Block*> actives;
     std::vector<std::vector<int>> activeCoords;
+    float biomeNoise = ChunkManager::m_BiomeNoise.GetNoise(static_cast<float>(m_xCoord*CHUNK_WIDTH), static_cast<float>(m_zCoord*CHUNK_WIDTH));
+    printf("%.2f\n", biomeNoise);
+    BIOMETYPE biome = Chunk::BiomeSelect(biomeNoise);
     // Initial Generation
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
         {
-            BIOMETYPE biome = BIOMETYPE::HILLS;
+            
             float noise = ChunkManager::m_ChunkHeightNoise.GetNoise(static_cast<float>(x+m_xCoord*CHUNK_WIDTH), static_cast<float>(z+m_zCoord*CHUNK_WIDTH));
             int surface = static_cast<int>(DEFAULT_CHUNK_GROUND+(noise*BIOME::GetSurfaceVariation(biome)));
             for (int y = 0; y < surface; y++)
@@ -290,6 +302,8 @@ ChunkManager::ChunkManager()
 {
 
     m_ChunkHeightNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    m_BiomeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    m_BiomeNoise.SetFrequency(0.003f);
     for (int i = 0; i < CHUNK_MANAGER_THREADCOUNT; i++)
     {
         m_WorkerThreads[i] = std::thread(ChunkWorkerThread);

@@ -103,6 +103,7 @@ private:
     void BlockGenVertices(BlockType type, float x, float y, float z);
     static void OrePopulatePass(std::vector<int> coordStart, Chunk* chunk);
     static void OrePassFill(std::vector<int> coordStart, BlockType ore, Chunk* chunk);
+    static BIOMETYPE BiomeSelect(float biomeNoise);
     static int OreGetVeinSize(BlockType ore);
     std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
@@ -171,6 +172,7 @@ public:
     static std::vector<Chunk*> m_ActiveChunks;
     static std::pair<int, int> m_CurrentChunk;
     static FastNoiseLite m_ChunkHeightNoise;
+    static FastNoiseLite m_BiomeNoise;
     void AddChunkToRenderer(Chunk* chunk);
     void RemoveChunkFromRenderer(Chunk* chunk);
     static void ChunkWorkerThread();
