@@ -32,6 +32,7 @@ RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(O
 RenderObject::~RenderObject()
 {
    // printf("~RenderObject() --> 0x%x\n", m_VertexArray);
+   
     delete m_VertexArray;
 }
 

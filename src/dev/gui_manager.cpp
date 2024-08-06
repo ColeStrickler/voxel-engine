@@ -197,10 +197,10 @@ void GUI::DisplayChunkManagementOptions()
     if (ImGui::BeginPopupModal("Function Profiling Statistics", &open, ImGuiWindowFlags_None)) {
 
         ImGui::SetWindowSize(ImVec2(600, 400));
-        ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 8000);
-        ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 32.0f);
-        ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 32.0f);
-        if(ImGui::SliderFloat("View Distance", &ViewDistance, 0.1f, 5000.0f))
+        ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 20000);
+        ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 48.0f);
+        ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 48.0f);
+        if(ImGui::SliderFloat("View Distance", &ViewDistance, 0.1f, 10000.0f))
         {
             auto camera = gl.GetCamera();
             camera->ChangeViewDistance(ViewDistance);

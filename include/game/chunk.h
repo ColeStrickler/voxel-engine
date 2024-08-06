@@ -16,7 +16,7 @@
 #define DEFAULT_CHUNK_GROUND 64
 #define MIN_CHUNK_HEIGHT 0
 #define CHUNK_WIDTH 16
-#define PACK_FACEBLOCK(face, blocktype) (((face & 0xFF) << 24) | (blocktype & 0xFFFF))
+#define PACK_FACEBLOCK(face, blocktype) (((face & 0xFF) << 24) | ((unsigned short)blocktype & 0xFFFF))
 #define DEFAULT_NOISE_SEED 1337
 #define CAN_ALLOC_CHUNK (ChunkManager::m_ActiveChunks.size() < MAX_CHUNKS)
 #define IS_IN_CHUNK(x, y, z) ((x >= 0 && x < CHUNK_WIDTH) && (z >= 0 && z < CHUNK_WIDTH) && (y >= 0 && y < MAX_CHUNK_HEIGHT))
@@ -131,6 +131,9 @@ private:
 #define CHUNK_TWEAK_PARAMETER 6
 #define MAX_CHUNKS_ (MEMORY_LIMIT_/ (CHUNK_TWEAK_PARAMETER*(sizeof(Chunk) + CHUNK_VERTICES_SIZE + CHUNK_INDICES_SIZE + CHUNK_SIZE_OTHER))) // safety net
 //#define CHUNK_MAP_CENTER (CHUNK_DISTANCE/2)
+#define MAX_WORK_ITEMS 375
+#define ACTIVE_WORK_ITEMS (m_WorkItems.size())
+#define CHUNK_WORKER_QUEUE_FULL (ACTIVE_WORK_ITEMS >= MAX_WORK_ITEMS)
 
 enum CHUNK_WORKER_CMD
 {
@@ -164,10 +167,7 @@ public:
     static void GenChunk(int x, int z);
     void CleanFarChunks();
     void CleanFarChunks(float div);
-    void MapMoveForward();
-    void MapMoveBackward();
-    void MapMoveLeft();
-    void MapMoveRight();
+    void MapMove();
     
     static std::vector<Chunk*> m_ActiveChunks;
     static std::pair<int, int> m_CurrentChunk;

@@ -6,9 +6,9 @@ extern GLManager gl;
 extern Logger logger;
 extern Renderer renderer;
 
-int MAX_CHUNKS = MAX_CHUNKS_;
-float CHUNK_DISTANCE = CHUNK_DISTANCE_;
-float DELETE_DISTANCE = DELETE_DISTANCE_;
+int MAX_CHUNKS = 5000;
+float CHUNK_DISTANCE = 16.0f;
+float DELETE_DISTANCE = 20.0f;
 
 std::condition_variable ChunkManager::m_WorkerCV;
 std::mutex ChunkManager::m_WorkerLock;
@@ -36,14 +36,14 @@ int delete_count = 0;
 #define HEIGHT_SCALE 96.0f // multiplier to adjust terrain
 #define SCALE 0.1f
 
-Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z), m_bHasDiamond(false)
+Chunk::Chunk(int x, int z, ShaderProgram* sp) : m_xCoord(x), m_zCoord(z)
 {
     
     GenerateChunk();
     GenerateChunkMesh(sp);
 }
 
-Chunk::Chunk(int x, int z, ShaderProgram* sp, bool delay): m_xCoord(x), m_zCoord(z), m_bHasDiamond(false)
+Chunk::Chunk(int x, int z, ShaderProgram* sp, bool delay): m_xCoord(x), m_zCoord(z)
 {
     GenerateChunk();
 
@@ -86,8 +86,10 @@ void Chunk::GenerateChunkMesh(ShaderProgram* sp)
     m_VA->AddIndexBuffer(m_IB);
     m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
     m_RenderObj->Translate(glm::vec3(static_cast<float>(m_xCoord*CHUNK_WIDTH), 0.0f, static_cast<float>(m_zCoord*CHUNK_WIDTH)));
-    if (m_bHasDiamond)
-        m_RenderObj->ToggleWireFrame();
+    //if (m_bHasDiamond)
+    //    m_RenderObj->ToggleWireFrame();
+    m_Vertices.clear();
+    m_Indices.clear();
 }
 
 void Chunk::BlockGenVertices(BlockType blocktype, float x, float y, float z)
@@ -201,10 +203,7 @@ void Chunk::OrePassFill(std::vector<int> coordStart, BlockType ore, Chunk* chunk
             y += ny;
             z += nz;
             
-            auto& block = chunk->m_Blocks[x][y][z];
-            if (block.isActive() && ore == BlockType::Diamond)
-                chunk->m_bHasDiamond = true;
-            
+            auto& block = chunk->m_Blocks[x][y][z];   
             block.setType(ore);
         }
     }
@@ -450,25 +449,16 @@ void ChunkManager::PerFrame()
     if (new_chunk)
     {
         if (diff_x < 0.0f)
-        {
             m_CurrentChunk.first--;
-            MapMoveLeft();
-        }
         else if (diff_x > 16.0f)
-        {
             m_CurrentChunk.first++;
-            MapMoveRight();
-        }
         else if (diff_z > 16.0f)
-        {
             m_CurrentChunk.second++;
-            MapMoveForward();
-        }
         else if (diff_z < 0.0f)
-        {
             m_CurrentChunk.second--;
-            MapMoveBackward();
-        }
+
+
+        MapMove();
 
         //logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> current chunk " + std::to_string(m_CurrentChunk.first) + "," +\
         std::to_string(m_CurrentChunk.second));
@@ -565,106 +555,45 @@ void ChunkManager::CleanFarChunks(float div)
 
 
 // z++
-void ChunkManager::MapMoveForward()
+void ChunkManager::MapMove()
 {
     // All items at the bottom the map are invalid
     CleanFarChunks();
     
 
-    for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
+    for (int x = 0; x <= CHUNK_DISTANCE; x++)
     {
-        for (int z = m_CurrentChunk.second; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
+        
+        // /if (!CAN_ALLOC_CHUNK || CHUNK_WORKER_QUEUE_FULL) printf("break\n");break;
+        auto px = m_CurrentChunk.first + x;
+        auto nx = m_CurrentChunk.first - x;
+        printf("yolo\n");
+        for (int z = 0; z <= CHUNK_DISTANCE; z++)
         {
-             bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
-            if (used) continue;
+            printf("iunside\n");
+            if (!CAN_ALLOC_CHUNK || CHUNK_WORKER_QUEUE_FULL) {break;}
 
-
-            if (DistanceFromCurrentChunk(x, z) < CHUNK_DISTANCE)
+            auto pz = m_CurrentChunk.second + z;
+            auto nz = m_CurrentChunk.second - z;
+            std::vector<std::vector<int>> locations = {{px,pz}, {nx, pz}, {px, nz}, {nx, nz}};
+            printf("pos size %d\n", locations.size());
+            for (auto& pos : locations)
             {
-                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
-                m_UsedChunks.insert(pair2String(x, z));
-                std::unique_lock lock(m_WorkerLock);
-                m_WorkItems.push(work);
-                m_WorkerCV.notify_one();
-                lock.unlock();
-            }
-        }
-    }
-}
-
-//z--
-void ChunkManager::MapMoveBackward()
-{
-     // All items at the bottom the map are invalid
-    CleanFarChunks();
-
-    for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
-    {
-        for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second; z++)
-        {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
-            if (used) continue;
-            if (DistanceFromCurrentChunk(x, z)  < CHUNK_DISTANCE)
-            {
-                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
-                 m_UsedChunks.insert(pair2String(x, z));
-                std::unique_lock lock(m_WorkerLock);
-                m_WorkItems.push(work);
-                m_WorkerCV.notify_one();
-                lock.unlock();
-            }
-        }
-    }
-}
-
-// x--
-void ChunkManager::MapMoveLeft()
-{
-        // All items at the bottom the map are invalid
-    CleanFarChunks();
-
-    for (int x = m_CurrentChunk.first-CHUNK_DISTANCE; x < m_CurrentChunk.first; x++)
-    {
-        for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
-        {
-             bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
-            if (used) continue;
-            if (glm::distance(glm::vec2(static_cast<float>(m_CurrentChunk.first), static_cast<float>(m_CurrentChunk.second)), \
-            glm::vec2(static_cast<float>(x), static_cast<float>(z))) < CHUNK_DISTANCE)
-            {
-                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
-                m_UsedChunks.insert(pair2String(x, z));
-                std::unique_lock lock(m_WorkerLock);
-                m_WorkItems.push(work);
-                m_WorkerCV.notify_one();
-                lock.unlock();
-            }
-        }
-    }
-}
-
-// x++
-void ChunkManager::MapMoveRight()
-{
-    // All items at the bottom the map are invalid
-    //std::vector<Chunk*> invalids;
-    //printf("map move foreward\n");
-    CleanFarChunks();
-
-    for (int x = m_CurrentChunk.first; x < m_CurrentChunk.first+CHUNK_DISTANCE; x++)
-    {
-        for (int z = m_CurrentChunk.second-CHUNK_DISTANCE; z < m_CurrentChunk.second+CHUNK_DISTANCE; z++)
-        {
-            bool used = m_UsedChunks.count(pair2String(x,z)) > 0 || !CAN_ALLOC_CHUNK;
-            if (used) continue;
-            if (DistanceFromCurrentChunk(x, z)  < CHUNK_DISTANCE)
-            {
-                ChunkWorkItem* work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::ALLOC);
-                m_UsedChunks.insert(pair2String(x, z));
-                std::unique_lock lock(m_WorkerLock);
-                m_WorkItems.push(work);
-                m_WorkerCV.notify_one();
-                lock.unlock();
+                
+                if (!CAN_ALLOC_CHUNK || CHUNK_WORKER_QUEUE_FULL){ break;}
+                auto cx = pos[0];
+                auto cz = pos[1];
+                bool used = m_UsedChunks.count(pair2String(cx,cz)) > 0;
+                if (used) continue;
+                if (DistanceFromCurrentChunk(cx, cz) < CHUNK_DISTANCE)
+                {
+                    ChunkWorkItem* work = new ChunkWorkItem(cx, cz, CHUNK_WORKER_CMD::ALLOC);
+                    m_UsedChunks.insert(pair2String(cx, cz));
+                    std::unique_lock lock(m_WorkerLock);
+                    m_WorkItems.push(work);
+                    m_WorkerCV.notify_one();
+                    lock.unlock();
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ extern Logger logger;
 
 Block::Block() : m_bIsActive(false), m_Type(BlockType::BLOCKNONE)
 {
+   
 }
 
 Block::~Block()
@@ -18,8 +19,8 @@ void Block::setActive(bool bActive)
 
 std::vector<std::pair<float, float>> Block::GenBlockVertices(BlockType blocktype, BLOCKFACE face)
 {
-    assert(blocktype >= 0 && blocktype < BlockType::BLOCKMAX); 
-    std::vector<std::pair<uint32_t, uint32_t>> face_indices = BlockFaceIndexes[blocktype];
+    assert((unsigned short)blocktype >= 0 && (unsigned short)blocktype < (unsigned short)BlockType::BLOCKMAX); 
+    std::vector<std::pair<uint32_t, uint32_t>> face_indices = BlockFaceIndexes[(unsigned short)blocktype];
     std::vector<BlockVertex> newVertices = cubeVertices; // copy new vertex data
 
     // replace the texture coords with the proper index into the texture atlas

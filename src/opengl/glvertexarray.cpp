@@ -9,8 +9,7 @@ VertexArray::~VertexArray()
 {
     
     if (m_VertexBuffer)
-    {
-        
+    {        
         delete m_VertexBuffer;
     }
     if (m_IndexBuffer)

@@ -52,7 +52,7 @@ const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes =
 
 
 
-enum BlockType
+enum class BlockType : short
 {
     BLOCKNONE,
     DirtSurface,
