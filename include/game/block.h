@@ -40,6 +40,7 @@ const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes =
     {{0,5}, {0,5}, {0,5}, {0,5}, {0,5}, {0,5}}, // Gold
     {{0,6}, {0,6}, {0,6}, {0,6}, {0,6}, {0,6}}, // Coal
     {{0,7}, {0,7}, {0,7}, {0,7}, {0,7}, {0,7}}, // Diamond
+    {{0,8}, {0,8}, {0,8}, {0,8}, {0,8}, {0,8}}, // Sand
 
 };
 
@@ -62,6 +63,7 @@ enum class BlockType : short
     Gold,
     Coal,
     Diamond,
+    Sand,
     OakWood,
     OakLeaf,
     BlueWater,

@@ -8,6 +8,7 @@ int BIOME::GetSurfaceVariation(BIOMETYPE biome)
     {
         case BIOMETYPE::HILLS: return 16;
         case BIOMETYPE::PLAINS: return 3;
+        case BIOMETYPE::Desert: return 3;
         default: return 0;
     }
 }
@@ -48,3 +49,12 @@ BlockType BIOME::ExtremeHills_GetBlockType(int x, int y, int z, int surface)
     }
 }
 
+BlockType BIOME::Desert_GetBlockType(int x, int y, int z, int surface)
+{
+    if (y == surface)
+        return BlockType::Sand;
+    if (surface - y < 6)
+        return BlockType::Sand; // sandstone
+    else
+        return BlockType::Stone;
+}

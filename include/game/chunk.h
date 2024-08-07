@@ -131,7 +131,7 @@ private:
 #define CHUNK_SIZE_OTHER (sizeof(IndexBuffer)+sizeof(VertexBuffer)+sizeof(VertexArray)+sizeof(RenderObject))
 #define CHUNK_TWEAK_PARAMETER 6
 #define MAX_CHUNKS_ (MEMORY_LIMIT_/ (CHUNK_TWEAK_PARAMETER*(sizeof(Chunk) + CHUNK_VERTICES_SIZE + CHUNK_INDICES_SIZE + CHUNK_SIZE_OTHER))) // safety net
-#define MAX_WORK_ITEMS 4750
+#define MAX_WORK_ITEMS 600
 #define ACTIVE_WORK_ITEMS (m_WorkItems.size())
 #define CHUNK_WORKER_QUEUE_FULL (ACTIVE_WORK_ITEMS >= MAX_WORK_ITEMS) // this will allow us to catch up with deletions
 

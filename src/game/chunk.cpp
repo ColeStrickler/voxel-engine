@@ -5,8 +5,8 @@ extern Logger logger;
 extern Renderer renderer;
 
 int MAX_CHUNKS = 5000;
-float CHUNK_DISTANCE = 16.0f;
-float DELETE_DISTANCE = 20.0f;
+float CHUNK_DISTANCE = 26.0f;
+float DELETE_DISTANCE = 28.0f;
 
 std::condition_variable ChunkManager::m_WorkerCV;
 std::mutex ChunkManager::m_WorkerLock;
@@ -222,6 +222,8 @@ BIOMETYPE Chunk::BiomeSelect(float biomeNoise)
 {
     if (biomeNoise < -0.5f)
         return BIOMETYPE::HILLS;
+    else if (biomeNoise < 1.2f)
+        return BIOMETYPE::Desert;
     else
         return BIOMETYPE::PLAINS;
 }
@@ -236,6 +238,8 @@ BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
         return BIOME::Plains_GetBlockType(x, y, z, surface);
     case BIOMETYPE::EXTREME_HILLS:
         return BIOME::ExtremeHills_GetBlockType(x, y, z, surface);
+    case BIOMETYPE::Desert:
+        return BIOME::Desert_GetBlockType(x, y, z, surface);
     default:
     {
         logger.Log(LOGTYPE::ERROR, "Chunk::GetBlockType() --> Got invalid BIOME.");
