@@ -5,12 +5,15 @@
 enum BIOMETYPE {
     HILLS,
     PLAINS,
+    EXTREME_HILLS,
 };
 
 namespace BIOME
 {
     int GetSurfaceVariation(BIOMETYPE biome);
     BlockType Hills_GetBlockType(int x, int y, int z, int surface);
+    BlockType Plains_GetBlockType(int x, int y, int z, int surface);
+    BlockType ExtremeHills_GetBlockType(int x, int y, int z, int surface);
 };
 
 

@@ -93,7 +93,7 @@ public:
 private:
     bool m_bIsActive;
     BlockType m_Type;
-};
+}__attribute__((packed));
 
 void PrintBlockVertex(BlockVertex& v);
 

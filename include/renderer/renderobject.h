@@ -80,8 +80,6 @@ private:
     bool m_bWireFrame;
     bool m_bStencilOutline;
     VertexArray* m_VertexArray;
-    VertexBuffer* m_VertexBuffer;
-    IndexBuffer* m_IndexBuffer;
     ShaderProgram* m_ShaderProgram;
     
     glm::mat4 m_Model;

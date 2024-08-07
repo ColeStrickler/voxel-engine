@@ -5,24 +5,23 @@
 extern Renderer renderer;
 extern GLManager gl;
 extern Logger logger;
-RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type) : m_VertexArray(va), m_VertexBuffer(vb), \
-    m_ShaderProgram(sp), m_IndexBuffer(ib), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false),
+RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type) : m_VertexArray(va), \
+    m_ShaderProgram(sp), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false),
     m_bDelete(false)
 {
     if (ib != nullptr)
         m_bUseIndexBuffer = true;
-    
 }
 
-RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type ) : m_VertexArray(va), m_VertexBuffer(vb), m_ShaderProgram(sp), \
+RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type ) : m_VertexArray(va),  m_ShaderProgram(sp), \
     m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false), m_bDelete(false)
 {
     m_bUseIndexBuffer = false;
    // m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
-RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(OBJECTYPE::ComplexModelObject), m_VertexArray(NULL), m_VertexBuffer(NULL),\
-    m_IndexBuffer(NULL), m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_bStencilOutline(false),\
+RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(OBJECTYPE::ComplexModelObject), m_VertexArray(NULL),\
+    m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_bStencilOutline(false),\
      m_bDelete(false)
 {
     m_MeshModel = model;

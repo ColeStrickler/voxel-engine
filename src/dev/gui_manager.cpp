@@ -207,6 +207,17 @@ void GUI::DisplayChunkManagementOptions()
             auto camera = gl.GetCamera();
             camera->ChangeViewDistance(ViewDistance);
         }
+        if (ImGui::Button("Clear Chunks"))
+        {
+            ChunkManager::CleanFarChunks(9999.0f);
+        }
+
+        if (ImGui::Button("Chunk"))
+        {
+            for (int i = 0; i < 50; i++)
+                Chunk* chunk = new Chunk(0, 0, ChunkManager::m_ChunkShader);
+    
+        }
 
         if (ImGui::Button("Close")) {
             ImGui::CloseCurrentPopup();
