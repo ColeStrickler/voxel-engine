@@ -3,7 +3,7 @@
 extern Logger logger;
 
 
-Block::Block() : m_bIsActive(false), m_Type(BlockType::BLOCKNONE)
+Block::Block() : m_Active_Type(0)
 {
    
 }
@@ -14,7 +14,19 @@ Block::~Block()
 
 void Block::setActive(bool bActive)
 {
-    m_bIsActive = bActive;
+    m_Active_Type &= 0x7fff; // clear bit 15
+    m_Active_Type |= ((bActive & 1) << 15); // set bit 15 to bActive
+}
+
+void Block::setType(BlockType type)
+{
+    m_Active_Type &= (1 << 15); // clear bottom bits
+    m_Active_Type |= ((unsigned short)type & 0x7fff);
+}
+
+BlockType Block::getBlockType() const
+{
+    return (BlockType)(m_Active_Type & 0x7fff);
 }
 
 std::vector<std::pair<float, float>> Block::GenBlockVertices(BlockType blocktype, BLOCKFACE face)

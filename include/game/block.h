@@ -84,15 +84,23 @@ class Block
 public:
     Block();
     ~Block();
-    inline bool isActive() const {return m_bIsActive;};
+    inline bool isActive() const {return (bool)((m_Active_Type >> 15) & 1);};
     void setActive(bool bActive);
-    inline void setType(BlockType type) {m_Type = type;};
-    inline BlockType getBlockType() const {return m_Type;}
+    void setType(BlockType type);
+    BlockType getBlockType() const;
     static std::vector<std::pair<float, float>> GenBlockVertices(BlockType blocktype, BLOCKFACE face);
     static std::vector<std::pair<float,float>> GenTextureCoordBlockFace(std::pair<uint32_t, uint32_t> TextureAtlasIndex);
 private:
-    bool m_bIsActive;
-    BlockType m_Type;
+    // bool m_bIsActive;
+    // BlockType m_Type;
+
+    /*
+        We pack both of these values into a single uint16_t so we can save a byte, reducing block size by 50%
+
+        bit 15      => m_bIsActive
+        bit 0-14    => m_Type 
+    */
+    uint16_t m_Active_Type; 
 }__attribute__((packed));
 
 void PrintBlockVertex(BlockVertex& v);
