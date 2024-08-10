@@ -4,6 +4,7 @@
 #include <thread>
 #include <queue>
 #include <unordered_set>
+#include <map>
 #include "gl.h"
 #include "glbuffer.h"
 #include "glvertexarray.h"
@@ -11,6 +12,7 @@
 #include "world.h"
 #include "block.h"
 #include "biome.h"
+#include "structures.h"
 #include "FastNoiseLite.h"
 #define MAX_CHUNK_HEIGHT 96
 #define DEFAULT_CHUNK_GROUND 64
@@ -83,6 +85,16 @@ struct ChunkVertex
     // Each block gets 4 slots in the texture map, 1 for top, 2 for the sides, 1 for bottom
 }__attribute__((packed));
 
+
+std::vector<ChunkVertex> GetFrontFace(float x, float y, float z, BlockType type);
+std::vector<ChunkVertex> GetBackFace(float x, float y, float z, BlockType type);
+std::vector<ChunkVertex> GetLeftFace(float x, float y, float z, BlockType type);
+std::vector<ChunkVertex> GetRightFace(float x, float y, float z, BlockType type);
+std::vector<ChunkVertex> GetTopFace(float x, float y, float z, BlockType type);
+std::vector<ChunkVertex> GetBottomFace(float x, float y, float z, BlockType type);
+std::vector<ChunkVertex> GetFace(BLOCKFACE face, BlockType type, float x, float y, float z);
+std::vector<unsigned int> GetFaceInidices(BLOCKFACE face);
+
 class Chunk
 {
 public:
@@ -94,16 +106,21 @@ public:
     std::string GetPositionAsString();
     RenderObject* GetRenderObject() { return m_RenderObj; }
     void GenerateChunkMesh(ShaderProgram* sp);
+    bool isActive(int x, int y, int z);
     bool m_bHasDiamond;
+
+
+    static BIOMETYPE BiomeSelect(float biomeNoise);
 private:
     int m_xCoord;
     int m_zCoord;
     
     void GenerateChunk();
-    void BlockGenVertices(BlockType type, float x, float y, float z);
+    void BlockGenVertices(BlockType type, float x, float y, float z, BLOCKFACE face);
     static void OrePopulatePass(std::vector<int> coordStart, Chunk* chunk);
     static void OrePassFill(std::vector<int> coordStart, BlockType ore, Chunk* chunk);
-    static BIOMETYPE BiomeSelect(float biomeNoise);
+    static void AddStructure(Chunk *chunk, int x, int y, int z, STRUCTURETYPE structure, std::vector<Block*>& actives, std::vector<std::vector<int>>& activeCoords);
+    
     static int OreGetVeinSize(BlockType ore);
     std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
@@ -131,7 +148,7 @@ private:
 #define CHUNK_SIZE_OTHER (sizeof(IndexBuffer)+sizeof(VertexBuffer)+sizeof(VertexArray)+sizeof(RenderObject))
 #define CHUNK_TWEAK_PARAMETER 6
 #define MAX_CHUNKS_ (MEMORY_LIMIT_/ (CHUNK_TWEAK_PARAMETER*(sizeof(Chunk) + CHUNK_VERTICES_SIZE + CHUNK_INDICES_SIZE + CHUNK_SIZE_OTHER))) // safety net
-#define MAX_WORK_ITEMS 600
+#define MAX_WORK_ITEMS 700
 #define ACTIVE_WORK_ITEMS (m_WorkItems.size())
 #define CHUNK_WORKER_QUEUE_FULL (ACTIVE_WORK_ITEMS >= MAX_WORK_ITEMS) // this will allow us to catch up with deletions
 
@@ -140,6 +157,7 @@ enum CHUNK_WORKER_CMD
     FREE,
     ALLOC,
     UPDATE,
+    STRUCTURE_ADD,
 };
 
 
@@ -173,10 +191,12 @@ public:
     static std::pair<int, int> m_CurrentChunk;
     static FastNoiseLite m_ChunkHeightNoise;
     static FastNoiseLite m_BiomeNoise;
+    static FastNoiseLite m_StructureNoise;
     void AddChunkToRenderer(Chunk* chunk);
     void RemoveChunkFromRenderer(Chunk* chunk);
     static void ChunkWorkerThread();
-    static std::unordered_set<std::string> m_UsedChunks;
+    
+    static std::unordered_map<std::string, Chunk*> m_UsedChunks;
     static std::condition_variable m_WorkerCV;
     static std::mutex m_WorkerLock;
     static std::mutex m_FinishedItemsLock;

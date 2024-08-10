@@ -137,7 +137,8 @@ int main()
 
 
 
-
+    //Chunk* chunk = new Chunk(0, 0, ChunkManager::m_ChunkShader);
+    //renderer.AddRenderObject(chunk->GetRenderObject());    
 
     //BufferLayout* tex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
     //      new BufferElement("NORMALS", ShaderDataType::Float3, false),new BufferElement("TEXCOORDS", ShaderDataType::Float2, false) });

@@ -214,9 +214,8 @@ void GUI::DisplayChunkManagementOptions()
 
         if (ImGui::Button("Chunk"))
         {
-            for (int i = 0; i < 50; i++)
-                Chunk* chunk = new Chunk(0, 0, ChunkManager::m_ChunkShader);
-                
+            Chunk* chunk = new Chunk(0, 0, ChunkManager::m_ChunkShader);
+            renderer.AddRenderObject(chunk->GetRenderObject());    
     
         }
 

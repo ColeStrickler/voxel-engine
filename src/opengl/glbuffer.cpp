@@ -1,7 +1,7 @@
 #include "glbuffer.h"
 #include <stdio.h>
 
-VertexBuffer::VertexBuffer(uint32_t size)
+VertexBuffer::VertexBuffer(uint32_t size) : m_Offset(0)
 {
     glCreateBuffers(1, &m_BufferId);
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
@@ -41,7 +41,8 @@ void VertexBuffer::Unbind() const
 void VertexBuffer::SetData(const void *data, uint32_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, size, data); // updates from the beginning of the buffer
+    glBufferSubData(GL_ARRAY_BUFFER, m_Offset, size, data); // updates from the beginning of the buffer
+    m_Offset += size;
 }
 
 IndexBuffer::IndexBuffer(uint32_t *indices, uint32_t count) : m_Count(count)

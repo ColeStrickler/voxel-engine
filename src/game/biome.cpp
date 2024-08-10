@@ -58,3 +58,29 @@ BlockType BIOME::Desert_GetBlockType(int x, int y, int z, int surface)
     else
         return BlockType::Stone;
 }
+
+STRUCTURETYPE BIOME::GetStructure(BIOMETYPE biome, float structureNoise)
+{
+    switch (biome)
+    {
+        case BIOMETYPE::HILLS: return Hills_GetStructureType(structureNoise);
+        case BIOMETYPE::PLAINS: return Plains_GetStructureType(structureNoise);
+        case BIOMETYPE::Desert: return Desert_GetStructureType(structureNoise);
+        default: return STRUCTURETYPE::NO_STRUCTURE;
+    }
+}
+
+STRUCTURETYPE BIOME::Hills_GetStructureType(float structureNoise)
+{
+    return STRUCTURETYPE::tree1;
+}
+
+STRUCTURETYPE BIOME::Plains_GetStructureType(float structureNoise)
+{
+    return STRUCTURETYPE::tree1;
+}
+
+STRUCTURETYPE BIOME::Desert_GetStructureType(float structureNoise)
+{
+    return STRUCTURETYPE::tree1;
+}

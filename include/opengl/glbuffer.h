@@ -136,6 +136,7 @@ public:
     void SetLayout(BufferLayout* layout) {m_Layout = layout;};
     const BufferLayout& GetLayout() const {return *m_Layout;}
 private:
+    uint32_t m_Offset;
     unsigned int m_BufferId;
     BufferLayout* m_Layout;
 };
