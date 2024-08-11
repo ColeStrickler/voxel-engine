@@ -20,6 +20,7 @@
 #include "util.h"
 #include "model_loader.h"
 #include "chunk.h"
+#include "gpu_allocator.h"
 #include <utility>
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
@@ -39,6 +40,54 @@ const unsigned int SCR_HEIGHT = 600;
 
 int main()
 {
+
+    /*
+    
+        GPUAllocator allocator(0.8f);
+    double maxtime = 0.0f;
+    //EMIT_PROFILE_TOKEN
+    for (int i = 10; i < 220; i++)
+    {
+        for (int j = 10; j < 220; j++)
+        {
+            clock_t start = clock();
+            auto key = std::to_string(i) + "!" + std::to_string(j);
+            allocator.traverseCount = 0;
+            if(!allocator.PutData(key, nullptr, 900*i*j))
+            {
+               // printf("not able %d,%d\n", i, j);
+            }
+            double elapsed = double(clock() - start) / CLOCKS_PER_SEC;
+            maxtime = std::max(elapsed, maxtime);
+        }
+        //printf("traverse count %d\n", allocator.traverseCount);
+        //printf("nodeCount: %lld\n", allocator.nodeCount);
+    }
+    printf("time: %.8f   %lld\n", maxtime, allocator.nodeCount);
+
+
+    for (int i = 0; i < 1000; i++)
+    {
+        for (int j = 0; j < 1000; j++)
+        {
+            auto key = std::to_string(i) + "!" + std::to_string(j);
+            allocator.FreeData(key);
+        }
+    }
+
+    if (allocator.nodeCount != 0)
+    {
+        printf("nodeCount != 0 -----> %lld\n", allocator.nodeCount);
+        while(1);
+    }
+    
+    */
+
+
+   
+
+
+
     gl.SetDepthTesting(true);
     gl.SetStencilTesting(true);
 

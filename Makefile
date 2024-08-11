@@ -1,5 +1,5 @@
 CC=g++
-CC_FLAGS=-std=c++17 -O3 -ldl -lglfw -lfreetype -lassimp -g -l:libFastNoise.a
+CC_FLAGS=-std=c++17 -O3 -ldl -lglfw -lfreetype -lassimp -g -lnvidia-ml
 LD=ld
 BUILD_DIR=./build/
 TARGET_FILE=triangle
@@ -18,6 +18,8 @@ INCLUDES=\
 -I./include/renderer/ \
 -I./include/util/ \
 -I/usr/include/freetype2 \
+-I/usr/include/ \
+
 
 test:
 	echo $(OBJS)

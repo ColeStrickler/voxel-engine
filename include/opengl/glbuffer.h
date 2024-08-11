@@ -126,17 +126,16 @@ class VertexBuffer
 {
 public:
     VertexBuffer() = default;
-    VertexBuffer(uint32_t size);
-    VertexBuffer(float* data, uint32_t size);
+    VertexBuffer(uint64_t size);
+    VertexBuffer(float* data, uint64_t size);
     ~VertexBuffer();
     void Delete();
     void Bind() const;
     void Unbind() const;
-    void SetData(const void* data, uint32_t size);
+    void SetData(const void* data, uint64_t offset, uint64_t size);
     void SetLayout(BufferLayout* layout) {m_Layout = layout;};
     const BufferLayout& GetLayout() const {return *m_Layout;}
 private:
-    uint32_t m_Offset;
     unsigned int m_BufferId;
     BufferLayout* m_Layout;
 };

@@ -1,0 +1,179 @@
+#include "gpu_allocator.h"
+
+extern Logger logger;
+
+
+GPUAllocator::GPUAllocator(float percentMemory) : nodeCount(0)
+{
+    assert(percentMemory > 0.0f && percentMemory <= 1.0f);
+
+
+    nvmlReturn_t result = nvmlInit();
+    if (result != NVML_SUCCESS) {
+        logger.Log(LOGTYPE::ERROR, "GPUAllocator::GPUAllocator() Failed to initialize NVML: " + std::string(nvmlErrorString(result)));
+        return;
+    }
+
+    nvmlDevice_t device;
+    result = nvmlDeviceGetHandleByIndex(0, &device);
+    if (result != NVML_SUCCESS) {
+        logger.Log(LOGTYPE::ERROR, "GPUAllocator::GPUAllocator() Failed to get device handle: " + std::string(nvmlErrorString(result)));
+        nvmlShutdown();
+        return;
+    }
+
+
+    char name[NVML_DEVICE_NAME_BUFFER_SIZE];
+    result = nvmlDeviceGetName(device, name, NVML_DEVICE_NAME_BUFFER_SIZE);
+    if (result != NVML_SUCCESS) 
+        logger.Log(LOGTYPE::ERROR, "GPUAllocator::GPUAllocator() Failed to get device name: " + std::string(nvmlErrorString(result)));
+    else
+        m_DeviceName = std::string(name);
+
+
+
+
+    nvmlMemory_t memInfo;
+    if((result = nvmlDeviceGetMemoryInfo(device, &memInfo)) != NVML_SUCCESS) {
+        logger.Log(LOGTYPE::ERROR, "GPUAllocator::GPUAllocator()  Failed to fetch device memory info: " + std::string(nvmlErrorString(result)));
+        nvmlShutdown();
+        return;
+    } 
+
+    // ensure we have a power of 2
+    m_AllocatorCapacity = POWER_OF_2(static_cast<uint64_t>(percentMemory * memInfo.free)); 
+
+    m_RootNode = new GPUBuddyNode(true, m_AllocatorCapacity, 0, nullptr, false);
+    m_VB = new VertexBuffer(m_AllocatorCapacity);
+    nvmlShutdown();
+}
+
+
+
+GPUAllocator::~GPUAllocator()
+{
+}
+
+void GPUAllocator::FreeData(const std::string &key)
+{
+    auto& nodes = m_AllocTracker[key];
+    for (auto& node : nodes)
+        FreeNode(node);
+
+    //glInvalidateBufferSubData --> this will work
+    m_AllocTracker.erase(key);
+}
+
+bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBytes)
+{
+    GPUBuddyNode* allocatedNode = FindAndCreateNode(m_RootNode, sizeInBytes);
+    if (allocatedNode == nullptr)
+        return false;
+    m_AllocTracker[key].push_back(allocatedNode); // allocation was successful
+
+
+    /*
+        Now that we have confirmed we have space we can actually put it on the GPU
+    */
+    m_VB->SetData(data, allocatedNode->offset, sizeInBytes);
+    return true;
+}
+
+GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t bytesRequested)
+{
+    assert(currNode != nullptr);
+    assert(bytesRequested > 0);
+    if (bytesRequested < MINALLOC_SIZE)
+        return nullptr;
+
+    traverseCount++;
+
+    GPUBuddyNode* node = nullptr;
+   // printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
+    if (bytesRequested > currNode->size || currNode->offset >= m_AllocatorCapacity) // traversed too far
+    {
+        return node;
+    }
+    else if (currNode->left == nullptr && currNode->right == nullptr && !currNode->free) // node is already occupied
+    {
+       // printf("case 1\n");
+        return node;
+    }
+    else
+    {
+        if (bytesRequested*2 > currNode->size && currNode->free) // this is the correct size to fill the allocation
+        {
+            currNode->free = false;
+            return currNode;
+        }
+        //printf("case 3\n");
+        // Search left
+        if (currNode->left == nullptr)
+        {
+            nodeCount++;
+            currNode->left = new GPUBuddyNode(true, currNode->size/2, currNode->offset, currNode, true);   
+        }
+        node = FindAndCreateNode(currNode->left, bytesRequested);
+        if (node != nullptr)
+        {
+            currNode->free = false;
+            return node;
+        }
+    
+
+
+
+
+        if (currNode->right == nullptr)
+        {
+            nodeCount++;
+            currNode->right = new GPUBuddyNode(true, currNode->size/2, currNode->offset + currNode->size/2, currNode, false);
+        }
+        
+        node = FindAndCreateNode(currNode->right, bytesRequested);
+        if (node != nullptr)
+        {
+            currNode->free = false;
+            return node;
+        }
+    }
+
+    return node;
+}
+
+void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
+{
+    assert(currNode != nullptr);
+
+    if (currNode->parent == nullptr) // reached root node, nothing left to do
+        return;
+
+    bool goodLeft = currNode->left == nullptr;
+    bool goodRight = currNode->right == nullptr;
+    if (goodLeft && goodRight)
+    {
+        auto parent = currNode->parent;
+
+        if (currNode->leftNode)
+            parent->left = nullptr;
+        else
+            parent->right = nullptr;
+
+        /*
+            Do we need to mark the data on the GPU as cleared somehow?
+        
+        */
+
+        nodeCount--;
+        delete currNode;
+        FreeNode(parent);
+    }
+
+}
+
+GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, bool leftNode): free(isFree), size(s_size), offset(offset), parent(parent),\
+    leftNode(leftNode)
+{
+    left = nullptr;
+    right = nullptr;
+}
