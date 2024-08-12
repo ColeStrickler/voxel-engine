@@ -2,9 +2,10 @@
 #define GPU_ALLOC_H
 #include <nvml.h>
 #include <map>
+#include <unordered_set>
 #include "logger.h"
 #include "glbuffer.h"
-#define MINALLOC_SIZE 16384
+#define MINALLOC_SIZE 4096
 
 #define POWER_OF_2(x)((x) - (x%2))
 
@@ -32,7 +33,6 @@ public:
     bool PutData(const std::string& key, void* data, uint64_t sizeInBytes);
     GPUBuddyNode* FindAndCreateNode(GPUBuddyNode *currNode, uint64_t bytesRequested);
     int nodeCount;
-    int traverseCount;
 private:
     void FreeNode(GPUBuddyNode* currNode);
 

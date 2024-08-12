@@ -41,19 +41,21 @@ const unsigned int SCR_HEIGHT = 600;
 int main()
 {
 
-    /*
+    GUI_Manager.RegisterLogTarget(&logger);
+    logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
+    logger.Log(LOGTYPE::INFO, "test");
     
-        GPUAllocator allocator(0.8f);
+    GPUAllocator allocator(0.8f);
     double maxtime = 0.0f;
     //EMIT_PROFILE_TOKEN
-    for (int i = 10; i < 220; i++)
+    for (int i = 10; i < 120; i++)
     {
-        for (int j = 10; j < 220; j++)
+        for (int j = 10; j < 120; j++)
         {
             clock_t start = clock();
             auto key = std::to_string(i) + "!" + std::to_string(j);
             allocator.traverseCount = 0;
-            if(!allocator.PutData(key, nullptr, 900*i*j))
+            if(!allocator.PutData(key, nullptr, 500*i*j))
             {
                // printf("not able %d,%d\n", i, j);
             }
@@ -66,9 +68,9 @@ int main()
     printf("time: %.8f   %lld\n", maxtime, allocator.nodeCount);
 
 
-    for (int i = 0; i < 1000; i++)
+    for (int i = 10; i < 120; i++)
     {
-        for (int j = 0; j < 1000; j++)
+        for (int j = 10; j < 120; j++)
         {
             auto key = std::to_string(i) + "!" + std::to_string(j);
             allocator.FreeData(key);
@@ -77,11 +79,20 @@ int main()
 
     if (allocator.nodeCount != 0)
     {
+        int x = 0;
+        for (auto& e: allocator.m_tracker)
+        {
+            printf("still there %d: %s\n", x, e.c_str());
+            x++;
+        }
+
+
+
         printf("nodeCount != 0 -----> %lld\n", allocator.nodeCount);
         while(1);
     }
     
-    */
+    
 
 
    
@@ -131,9 +142,7 @@ int main()
 
 
 
-    GUI_Manager.RegisterLogTarget(&logger);
-    logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
-    logger.Log(LOGTYPE::INFO, "test");
+    
 
 
     ChunkManager chunkManager;

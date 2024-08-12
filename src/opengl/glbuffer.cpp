@@ -46,6 +46,12 @@ void VertexBuffer::SetData(const void *data, uint64_t size, uint64_t offset)
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data); // updates from the beginning of the buffer
 }
 
+void VertexBuffer::UnsetData(uint64_t offset, uint64_t size)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
+    glInvalidateBufferSubData(m_BufferId, offset, size);
+}
+
 IndexBuffer::IndexBuffer(uint32_t *indices, uint32_t count) : m_Count(count)
 {
     glCreateBuffers(1, &m_BufferId);

@@ -1,7 +1,8 @@
 #include "gpu_allocator.h"
 
 extern Logger logger;
-
+int deleted = 0;
+int created = 0;
 
 GPUAllocator::GPUAllocator(float percentMemory) : nodeCount(0)
 {
@@ -83,25 +84,24 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
 {
     assert(currNode != nullptr);
     assert(bytesRequested > 0);
-    if (bytesRequested < MINALLOC_SIZE)
-        return nullptr;
+    //if (bytesRequested < MINALLOC_SIZE)
+    //    return nullptr;
 
     traverseCount++;
 
     GPUBuddyNode* node = nullptr;
-   // printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
+    //printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
     if (bytesRequested > currNode->size || currNode->offset >= m_AllocatorCapacity) // traversed too far
     {
-        return node;
+        return nullptr;
     }
     else if (currNode->left == nullptr && currNode->right == nullptr && !currNode->free) // node is already occupied
     {
-       // printf("case 1\n");
-        return node;
+        return nullptr;
     }
     else
     {
-        if (bytesRequested*2 > currNode->size && currNode->free) // this is the correct size to fill the allocation
+        if (((bytesRequested > currNode->size/2 && bytesRequested <= currNode->size) || (bytesRequested <= MINALLOC_SIZE && currNode->size <= MINALLOC_SIZE)) && currNode->free) // this is the correct size to fill the allocation
         {
             currNode->free = false;
             return currNode;
@@ -111,7 +111,8 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
         if (currNode->left == nullptr)
         {
             nodeCount++;
-            currNode->left = new GPUBuddyNode(true, currNode->size/2, currNode->offset, currNode, true);   
+            currNode->left = new GPUBuddyNode(true, currNode->size/2, currNode->offset, currNode, true);
+            auto node = currNode->left;
         }
         node = FindAndCreateNode(currNode->left, bytesRequested);
         if (node != nullptr)
@@ -119,15 +120,22 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
             currNode->free = false;
             return node;
         }
-    
-
-
-
+        else
+        {
+            // found no valid node, lets delete the one we created
+            if (currNode->left->free) 
+            {
+                nodeCount--;
+                delete currNode->left;
+                currNode->left = nullptr;
+            }
+        }
 
         if (currNode->right == nullptr)
         {
             nodeCount++;
             currNode->right = new GPUBuddyNode(true, currNode->size/2, currNode->offset + currNode->size/2, currNode, false);
+            auto node = currNode->right;
         }
         
         node = FindAndCreateNode(currNode->right, bytesRequested);
@@ -136,9 +144,19 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
             currNode->free = false;
             return node;
         }
+        else
+        {
+            // found no valid node, lets delete the one we created
+            if (currNode->right->free)
+            {
+                nodeCount--;
+                delete currNode->right;
+                currNode->right = nullptr;
+            }
+        }
     }
 
-    return node;
+    return  nullptr;
 }
 
 void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
@@ -146,7 +164,10 @@ void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
     assert(currNode != nullptr);
 
     if (currNode->parent == nullptr) // reached root node, nothing left to do
+    {
+        m_VB->UnsetData(currNode->offset, currNode->size);
         return;
+    }
 
     bool goodLeft = currNode->left == nullptr;
     bool goodRight = currNode->right == nullptr;
@@ -160,13 +181,18 @@ void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
             parent->right = nullptr;
 
         /*
-            Do we need to mark the data on the GPU as cleared somehow?
-        
+            Are we making too many unnecessary calls to GPU calling this every time?
         */
-
         nodeCount--;
         delete currNode;
         FreeNode(parent);
+    }
+    else
+    {
+        if (goodLeft)
+            m_VB->UnsetData(currNode->offset, currNode->size/2);
+        if (goodRight)
+            m_VB->UnsetData(currNode->offset + currNode->size/2, currNode->size/2);
     }
 
 }

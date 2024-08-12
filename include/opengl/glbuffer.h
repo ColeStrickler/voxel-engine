@@ -133,6 +133,7 @@ public:
     void Bind() const;
     void Unbind() const;
     void SetData(const void* data, uint64_t offset, uint64_t size);
+    void UnsetData(uint64_t offset, uint64_t size);
     void SetLayout(BufferLayout* layout) {m_Layout = layout;};
     const BufferLayout& GetLayout() const {return *m_Layout;}
 private:
