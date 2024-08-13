@@ -65,6 +65,7 @@ vec2 GetTextureCoords(int face, int blocktype)
 
 void main()
 {
+
     int face = ((aFaceBlockType >> 24) & 0xFF);
     int blocktype = (aFaceBlockType & 0xFFFF);
 

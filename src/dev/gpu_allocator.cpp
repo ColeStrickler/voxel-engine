@@ -3,9 +3,14 @@
 extern Logger logger;
 int deleted = 0;
 int created = 0;
-
-GPUAllocator::GPUAllocator(float percentMemory) : nodeCount(0)
+GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, bool leftNode): free(isFree), size(s_size), offset(offset), parent(parent),\
+    leftNode(leftNode)
 {
+    left = nullptr;
+    right = nullptr;
+}
+
+GPUAllocator::GPUAllocator(float percentMemory) {
     assert(percentMemory > 0.0f && percentMemory <= 1.0f);
 
 
@@ -43,9 +48,11 @@ GPUAllocator::GPUAllocator(float percentMemory) : nodeCount(0)
 
     // ensure we have a power of 2
     m_AllocatorCapacity = POWER_OF_2(static_cast<uint64_t>(percentMemory * memInfo.free)); 
+    m_UsedMemory = 0;
 
     m_RootNode = new GPUBuddyNode(true, m_AllocatorCapacity, 0, nullptr, false);
-    m_VB = new VertexBuffer(m_AllocatorCapacity);
+    m_VB = new VertexBuffer(0);
+    m_VB->UnsetData(0, m_AllocatorCapacity);
     nvmlShutdown();
 }
 
@@ -53,6 +60,11 @@ GPUAllocator::GPUAllocator(float percentMemory) : nodeCount(0)
 
 GPUAllocator::~GPUAllocator()
 {
+}
+
+VertexBuffer *GPUAllocator::GetVertexBuffer()
+{
+    return m_VB;
 }
 
 void GPUAllocator::FreeData(const std::string &key)
@@ -65,14 +77,26 @@ void GPUAllocator::FreeData(const std::string &key)
     m_AllocTracker.erase(key);
 }
 
+bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBytes, bool realloc)
+{
+   // printf("size: %lld\n", sizeInBytes);
+
+    m_VB->Grow(data, sizeInBytes, m_UsedMemory);
+    m_UsedMemory += sizeInBytes;
+    return true;
+}
+
 bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBytes)
 {
     GPUBuddyNode* allocatedNode = FindAndCreateNode(m_RootNode, sizeInBytes);
     if (allocatedNode == nullptr)
+    {
+        printf("not found!\n");
         return false;
+    }
     m_AllocTracker[key].push_back(allocatedNode); // allocation was successful
 
-
+    printf("size %lld\n", sizeInBytes);
     /*
         Now that we have confirmed we have space we can actually put it on the GPU
     */
@@ -86,8 +110,6 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
     assert(bytesRequested > 0);
     //if (bytesRequested < MINALLOC_SIZE)
     //    return nullptr;
-
-    traverseCount++;
 
     GPUBuddyNode* node = nullptr;
     //printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
@@ -197,9 +219,3 @@ void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
 
 }
 
-GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, bool leftNode): free(isFree), size(s_size), offset(offset), parent(parent),\
-    leftNode(leftNode)
-{
-    left = nullptr;
-    right = nullptr;
-}

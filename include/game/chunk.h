@@ -13,6 +13,7 @@
 #include "block.h"
 #include "biome.h"
 #include "structures.h"
+#include "gpu_allocator.h"
 #include "FastNoiseLite.h"
 #define MAX_CHUNK_HEIGHT 96
 #define DEFAULT_CHUNK_GROUND 64
@@ -187,6 +188,10 @@ public:
     static void CleanFarChunks(float div);
     void MapMove();
     
+
+    static RenderObject* m_RenderObj;
+    static VertexArray* m_VA;
+    static GPUAllocator* m_GPUMemoryManager;
     static std::vector<Chunk*> m_ActiveChunks;
     static std::pair<int, int> m_CurrentChunk;
     static FastNoiseLite m_ChunkHeightNoise;

@@ -129,6 +129,7 @@ public:
     VertexBuffer(uint64_t size);
     VertexBuffer(float* data, uint64_t size);
     ~VertexBuffer();
+    void Grow(void* data, uint64_t dataSize, uint64_t oldSize);
     void Delete();
     void Bind() const;
     void Unbind() const;

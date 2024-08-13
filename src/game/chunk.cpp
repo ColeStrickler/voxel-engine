@@ -4,9 +4,9 @@ extern GLManager gl;
 extern Logger logger;
 extern Renderer renderer;
 
-int MAX_CHUNKS = 5000;
-float CHUNK_DISTANCE = 16.0f;
-float DELETE_DISTANCE = 20.0f;
+int MAX_CHUNKS = 1000;
+float CHUNK_DISTANCE = 10.0f;
+float DELETE_DISTANCE = 10.0f;
 
 std::condition_variable ChunkManager::m_WorkerCV;
 std::mutex ChunkManager::m_WorkerLock;
@@ -17,8 +17,11 @@ std::vector<std::string> ChunkManager::m_ToDeleteList;
 std::queue<Chunk *> ChunkManager::m_FinishedWork;
 std::unordered_map<std::string, Chunk *> ChunkManager::m_UsedChunks;
 ShaderProgram *ChunkManager::m_ChunkShader;
+RenderObject* ChunkManager::m_RenderObj;
+GPUAllocator* ChunkManager::m_GPUMemoryManager;
 Texture *ChunkManager::m_TextureAtlasDiffuse;
 Texture *ChunkManager::m_TextureAtlasSpecular;
+VertexArray* ChunkManager::m_VA;
 FastNoiseLite ChunkManager::m_ChunkHeightNoise;
 FastNoiseLite ChunkManager::m_StructureNoise;
 FastNoiseLite ChunkManager::m_BiomeNoise;
@@ -67,26 +70,34 @@ std::string Chunk::GetPositionAsString()
 void Chunk::GenerateChunkMesh(ShaderProgram *sp)
 {
 
-    BufferLayout *vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
-                                                    new BufferElement("faceBlockType", ShaderDataType::Int, false),
-                                                    new BufferElement("texCoord", ShaderDataType::Float2, false)});
-    m_IB = new IndexBuffer(m_Indices.data(), m_Indices.size());
-    m_VB = new VertexBuffer((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
+    
+    //m_IB = new IndexBuffer(m_Indices.data(), m_Indices.size());
+    //m_VB = new VertexBuffer((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
     // m_VB = new VertexBuffer(sizeof(ChunkVertex)*24*CHUNK_WIDTH*CHUNK_WIDTH*MAX_CHUNK_HEIGHT);
     // m_VB->SetData((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
-    m_VB->SetLayout(vertex_layout);
-    m_VA = new VertexArray();
-    m_VA->AddVertexBuffer(m_VB);
-    m_VA->AddIndexBuffer(m_IB);
-    m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
-    m_RenderObj->Translate(glm::vec3(m_xCoord * CHUNK_WIDTH, 0.0f, m_zCoord * CHUNK_WIDTH));
-    // if (m_bHasDiamond)
+    //m_VB->SetLayout(vertex_layout);
+
+    printf("Chunk::GenerateChunkMesh()\n");
+    ChunkManager::m_GPUMemoryManager->PutData(GetPositionAsString(), m_Vertices.data(), m_Vertices.size()*sizeof(ChunkVertex), false);
+   // printf("here! %lld\n", ChunkManager::m_VA->GetCount() + m_Vertices.size());
+    ChunkManager::m_VA->AddVertexBuffer(ChunkManager::m_GPUMemoryManager->GetVertexBuffer());
+    ChunkManager::m_VA->SetCount(ChunkManager::m_VA->GetCount() + m_Vertices.size());
+
+   // printf("here!\n");
+    //m_VA = new VertexArray();
+    //m_VA->AddVertexBuffer(m_VB);
+   // m_VA->AddIndexBuffer(m_IB);
+    //m_VA->SetCount(m_Vertices.size());
+    //m_RenderObj = new RenderObject(m_VA, m_VB, sp, OBJECTYPE::ChunkMesh);
+    //m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
+    //m_RenderObj->Translate(glm::vec3(m_xCoord * CHUNK_WIDTH, 0.0f, m_zCoord * CHUNK_WIDTH));
+    //// if (m_bHasDiamond)
     //     m_RenderObj->ToggleWireFrame();
    // printf("num vertices %d\n", m_Vertices.size());
     m_Vertices.clear();
     m_Vertices.shrink_to_fit();
-    m_Indices.clear();
-    m_Indices.shrink_to_fit();
+    //m_Indices.clear();
+    //m_Indices.shrink_to_fit();
 }
 
 bool Chunk::isActive(int x, int y, int z)
@@ -101,12 +112,12 @@ void Chunk::BlockGenVertices(BlockType blocktype, float x, float y, float z, BLO
 {
    //  printf("face: %d ==> %.2f, %.2f, %.2f\n", face,x, y, z);
     auto type = blocktype;
-    auto faceIndices = std::vector<unsigned int>{0, 1, 2, 1, 3, 2};
-    for (int i = 0; i < faceIndices.size(); i++)
-        faceIndices[i] += m_Vertices.size();
-    m_Indices.insert(m_Indices.end(), faceIndices.begin(), faceIndices.end());
+   // auto faceIndices = std::vector<unsigned int>{0, 1, 2, 1, 3, 2};
+    //for (int i = 0; i < faceIndices.size(); i++)
+    //    faceIndices[i] += m_Vertices.size();
+    //m_Indices.insert(m_Indices.end(), faceIndices.begin(), faceIndices.end());
 
-    std::vector<ChunkVertex> vertvec = GetFace(face, blocktype, x, y, z);
+    std::vector<ChunkVertex> vertvec = GetFace(face, blocktype, x+m_xCoord*CHUNK_WIDTH, y, z+m_zCoord*CHUNK_WIDTH);
     m_Vertices.insert(m_Vertices.end(), vertvec.begin(), vertvec.end());
 }
 
@@ -333,6 +344,18 @@ BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 
 ChunkManager::ChunkManager()
 {
+    m_GPUMemoryManager = new GPUAllocator(0.8f);
+    auto VB = m_GPUMemoryManager->GetVertexBuffer();
+    BufferLayout *vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
+                                                    new BufferElement("faceBlockType", ShaderDataType::Int, false),
+                                                    new BufferElement("texCoord", ShaderDataType::Float2, false)});
+    VB->SetLayout(vertex_layout);
+    
+
+    m_VA = new VertexArray();
+    m_VA->AddVertexBuffer(VB);
+   // m_VA->SetCount(m_GPUMemoryManager->m_AllocatorCapacity/sizeof(ChunkVertex));
+
 
     m_ChunkHeightNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_ChunkHeightNoise.SetSeed(DEFAULT_NOISE_SEED);
@@ -369,6 +392,13 @@ ChunkManager::ChunkManager()
     m_TextureAtlasSpecular = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
     m_TextureAtlasDiffuse = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
 
+
+    m_RenderObj = new RenderObject(m_VA, VB, m_ChunkShader, OBJECTYPE::ChunkMesh);
+    m_RenderObj->m_TexturedObject.AddDiffuseMap(m_TextureAtlasDiffuse);
+    m_RenderObj->m_TexturedObject.AddSpecularMap(m_TextureAtlasSpecular);
+
+
+     renderer.AddRenderObject(m_RenderObj);
     // can see CHUNK_DISTANCE each way
     // auto chunk = new Chunk(0, 0, m_ChunkShader);
     // AddChunkToRenderer(chunk);
@@ -508,6 +538,7 @@ void ChunkManager::PerFrame()
         std::unique_lock tdLock(m_ToDeleteLock);
         for (auto &td : m_ToDeleteList)
         {
+            //m_GPUMemoryManager->FreeData(td);
             m_UsedChunks.erase(td);
         }
         m_ToDeleteList.clear();
@@ -519,7 +550,7 @@ void ChunkManager::PerFrame()
         if (m_ActiveChunks.size() >= MAX_CHUNKS)
         {
             logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + " Discarding newly generated chunk.");
-            CleanFarChunks(1.6f);
+            //CleanFarChunks(1.6f);
             break;
         }
         auto chunk = m_FinishedWork.front();
@@ -537,7 +568,7 @@ void ChunkManager::PerFrame()
         // if (m_UsedChunks.count(chunk->GetPositionAsString()) > 1)
         //     while(1){printf("COPY! %s\n", chunk->GetPositionAsString());}
         // logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
-        AddChunkToRenderer(chunk);
+       // AddChunkToRenderer(chunk);
         // printf("chunk %x, chunk->RenderObj %x\n", chunk, chunk->GetRenderObject());
         break;
     }
@@ -555,7 +586,7 @@ void ChunkManager::CleanFarChunks()
         if (DistanceFromCurrentChunk(chunk) > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
-            chunk->GetRenderObject()->m_bDelete = true;
+            //chunk->GetRenderObject()->m_bDelete = true;
             ChunkWorkItem *work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
             std::unique_lock lock(m_WorkerLock);
             m_WorkItems.push(work);
@@ -688,7 +719,9 @@ std::vector<ChunkVertex> GetFrontFace(float x, float y, float z, BlockType type)
         ChunkVertex{{x + -0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[0].first, tex_front[0].second}}, // Bottom-left
         ChunkVertex{{x + 0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[1].first, tex_front[1].second}},  // Bottom-right
         ChunkVertex{{x + -0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[2].first, tex_front[2].second}},  // Top-left
+        ChunkVertex{{x + -0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[2].first, tex_front[2].second}},  // Top-left
         ChunkVertex{{x + 0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[3].first, tex_front[3].second}},   // Top-right
+        ChunkVertex{{x + 0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::FRONT, type), {tex_front[1].first, tex_front[1].second}},  // Bottom-right
     };
 }
 
@@ -700,7 +733,9 @@ std::vector<ChunkVertex> GetBackFace(float x, float y, float z, BlockType type)
         ChunkVertex{{x + -0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[0].first, tex_back[0].second}}, // Bottom-left
         ChunkVertex{{x + 0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[1].first, tex_back[1].second}},  // Bottom-right
         ChunkVertex{{x + -0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[2].first, tex_back[2].second}},  // Top-left
+        ChunkVertex{{x + -0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[2].first, tex_back[2].second}},  // Top-left
         ChunkVertex{{x + 0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[3].first, tex_back[3].second}},   // Top-right
+        ChunkVertex{{x + 0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BACK, type), {tex_back[1].first, tex_back[1].second}},  // Bottom-right
     };
 }
 
@@ -712,7 +747,9 @@ std::vector<ChunkVertex> GetLeftFace(float x, float y, float z, BlockType type)
         ChunkVertex{{x + -0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[0].first, tex_left[0].second}}, // Bottom-left
         ChunkVertex{{x + -0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[1].first, tex_left[1].second}},  // Bottom-right
         ChunkVertex{{x + -0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[2].first, tex_left[2].second}},  // Top-left
+        ChunkVertex{{x + -0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[2].first, tex_left[2].second}},  // Top-left
         ChunkVertex{{x + -0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[3].first, tex_left[3].second}},   // Top-right
+        ChunkVertex{{x + -0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::LEFT, type), {tex_left[1].first, tex_left[1].second}},  // Bottom-right
     };
 }
 
@@ -724,7 +761,9 @@ std::vector<ChunkVertex> GetRightFace(float x, float y, float z, BlockType type)
         ChunkVertex{{x + 0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[0].first, tex_right[0].second}}, // Bottom-left
         ChunkVertex{{x + 0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[1].first, tex_right[1].second}},  // Bottom-right
         ChunkVertex{{x + 0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[2].first, tex_right[2].second}},  // Top-left
+        ChunkVertex{{x + 0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[2].first, tex_right[2].second}},  // Top-left
         ChunkVertex{{x + 0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[3].first, tex_right[3].second}},   // Top-right
+        ChunkVertex{{x + 0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::RIGHT, type), {tex_right[1].first, tex_right[1].second}},  // Bottom-right
     };
 }
 
@@ -736,7 +775,9 @@ std::vector<ChunkVertex> GetTopFace(float x, float y, float z, BlockType type)
         ChunkVertex{{x + -0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[0].first, tex_top[0].second}}, // Bottom-left
         ChunkVertex{{x + 0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[1].first, tex_top[1].second}},  // Bottom-right
         ChunkVertex{{x + -0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[2].first, tex_top[2].second}},  // Top-left
+        ChunkVertex{{x + -0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[2].first, tex_top[2].second}},  // Top-left
         ChunkVertex{{x + 0.5f, y + 0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[3].first, tex_top[3].second}},   // Top-right
+        ChunkVertex{{x + 0.5f, y + 0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::TOP, type), {tex_top[1].first, tex_top[1].second}},  // Bottom-right
     };
 }
 
@@ -748,7 +789,9 @@ std::vector<ChunkVertex> GetBottomFace(float x, float y, float z, BlockType type
         ChunkVertex{{x + -0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[0].first, tex_bottom[0].second}}, // Bottom-left
         ChunkVertex{{x + 0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[1].first, tex_bottom[1].second}},  // Bottom-right
         ChunkVertex{{x + -0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[2].first, tex_bottom[2].second}},  // Top-left
+        ChunkVertex{{x + -0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[2].first, tex_bottom[2].second}},  // Top-left
         ChunkVertex{{x + 0.5f, y + -0.5f, z + 0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[3].first, tex_bottom[3].second}},   // Top-right
+        ChunkVertex{{x + 0.5f, y + -0.5f, z + -0.5f}, PACK_FACEBLOCK(BLOCKFACE::BOTTOM, type), {tex_bottom[1].first, tex_bottom[1].second}},  // Bottom-right
     };
 }
 

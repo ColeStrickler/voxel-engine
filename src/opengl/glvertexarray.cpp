@@ -1,6 +1,6 @@
 #include "glvertexarray.h"
 
-VertexArray::VertexArray()
+VertexArray::VertexArray() : m_Count(0)
 {
     glCreateVertexArrays(1, &m_ArrayId);
 }
@@ -62,4 +62,14 @@ void VertexArray::AddVertexBuffer(VertexBuffer* vertex_buffer)
     }
     
     
+}
+
+void VertexArray::SetCount(unsigned int count)
+{
+    m_Count = count;
+}
+
+unsigned int VertexArray::GetCount()
+{
+    return m_Count;
 }

@@ -19,8 +19,8 @@ public:
     void Unbind();
     void AddIndexBuffer(IndexBuffer* index_buffer);
     void AddVertexBuffer(VertexBuffer* vertex_buffer);
-    void SetCount(unsigned int count) {m_Count = count;}
-    unsigned int GetCount() const {return m_Count;}
+    void SetCount(unsigned int count);
+    unsigned int GetCount();
 private:
     unsigned int m_ArrayId;
     //std::vector<VertexBuffer> m_VertexBuffers; --> will want to be able to pass multiple at some point

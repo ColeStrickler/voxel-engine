@@ -41,61 +41,20 @@ const unsigned int SCR_HEIGHT = 600;
 int main()
 {
 
+    // Check for ARB_invalidate_subdata support
+if (glInvalidateBufferSubData == NULL) {
+    // Handle the case where the extension is not supported
+    printf("not supported\n");
+    return 0;
+}
+
     GUI_Manager.RegisterLogTarget(&logger);
     logger.SetLogLevel(LOGLEVEL::LEVEL_INFO);
     logger.Log(LOGTYPE::INFO, "test");
     
-    GPUAllocator allocator(0.8f);
-    double maxtime = 0.0f;
-    //EMIT_PROFILE_TOKEN
-    for (int i = 10; i < 120; i++)
-    {
-        for (int j = 10; j < 120; j++)
-        {
-            clock_t start = clock();
-            auto key = std::to_string(i) + "!" + std::to_string(j);
-            allocator.traverseCount = 0;
-            if(!allocator.PutData(key, nullptr, 500*i*j))
-            {
-               // printf("not able %d,%d\n", i, j);
-            }
-            double elapsed = double(clock() - start) / CLOCKS_PER_SEC;
-            maxtime = std::max(elapsed, maxtime);
-        }
-        //printf("traverse count %d\n", allocator.traverseCount);
-        //printf("nodeCount: %lld\n", allocator.nodeCount);
-    }
-    printf("time: %.8f   %lld\n", maxtime, allocator.nodeCount);
-
-
-    for (int i = 10; i < 120; i++)
-    {
-        for (int j = 10; j < 120; j++)
-        {
-            auto key = std::to_string(i) + "!" + std::to_string(j);
-            allocator.FreeData(key);
-        }
-    }
-
-    if (allocator.nodeCount != 0)
-    {
-        int x = 0;
-        for (auto& e: allocator.m_tracker)
-        {
-            printf("still there %d: %s\n", x, e.c_str());
-            x++;
-        }
 
 
 
-        printf("nodeCount != 0 -----> %lld\n", allocator.nodeCount);
-        while(1);
-    }
-    
-    
-
-
-   
 
 
 
@@ -188,6 +147,7 @@ int main()
     VertexBuffer* lighting_vbo = new VertexBuffer(tvertices, sizeof(tvertices));
     lighting_vbo->SetLayout(lighting_layout);
     lva->AddVertexBuffer(lighting_vbo);
+    lva->SetCount(36);
 
     RenderObject* l_obj = new RenderObject(lva, lighting_vbo, &shaderProgram, OBJECTYPE::PointLightSource);
     l_obj->SetPosition({0.0f, 0.0f, 0.0f});
@@ -288,13 +248,14 @@ int main()
 
    
     
-
+   
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
         chunkManager.PerFrame();
         gl.PerFrame();
         logger.WriteLogs();
+         
         // model = glm::rotate(model, .1f, );
        // r_obj.Rotate(glm::vec3(0.5f, 1.0f, 0.0f), .1f);
         // float time = glfwGetTime();

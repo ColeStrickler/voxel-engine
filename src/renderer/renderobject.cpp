@@ -5,33 +5,33 @@
 extern Renderer renderer;
 extern GLManager gl;
 extern Logger logger;
-RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb,  ShaderProgram* sp, IndexBuffer* ib, OBJECTYPE type) : m_VertexArray(va), \
-    m_ShaderProgram(sp), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false),
-    m_bDelete(false)
+RenderObject::RenderObject(VertexArray *va, VertexBuffer *vb, ShaderProgram *sp, IndexBuffer *ib, OBJECTYPE type) : m_VertexArray(va),
+                                                                                                                    m_ShaderProgram(sp), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false),
+                                                                                                                    m_bDelete(false)
 {
     if (ib != nullptr)
         m_bUseIndexBuffer = true;
 }
 
-RenderObject::RenderObject(VertexArray* va, VertexBuffer* vb, ShaderProgram* sp, OBJECTYPE type ) : m_VertexArray(va),  m_ShaderProgram(sp), \
-    m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false), m_bDelete(false)
+RenderObject::RenderObject(VertexArray *va, VertexBuffer *vb, ShaderProgram *sp, OBJECTYPE type) : m_VertexArray(va), m_ShaderProgram(sp),
+                                                                                                   m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false), m_bDelete(false)
 {
     m_bUseIndexBuffer = false;
-   // m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
+    // m_Light.color = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
-RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(OBJECTYPE::ComplexModelObject), m_VertexArray(NULL),\
-    m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_bStencilOutline(false),\
-     m_bDelete(false)
+RenderObject::RenderObject(ShaderProgram *sp, MeshModel *model) : m_ObjectType(OBJECTYPE::ComplexModelObject), m_VertexArray(NULL),
+                                                                  m_bUseIndexBuffer(false), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_bStencilOutline(false),
+                                                                  m_bDelete(false)
 {
     m_MeshModel = model;
-    m_ShaderProgram =sp;
+    m_ShaderProgram = sp;
 }
 
 RenderObject::~RenderObject()
 {
-   // printf("~RenderObject() --> 0x%x\n", m_VertexArray);
-   
+    // printf("~RenderObject() --> 0x%x\n", m_VertexArray);
+
     delete m_VertexArray;
 }
 
@@ -39,11 +39,10 @@ bool RenderObject::Render()
 {
     if (m_bDelete)
         return true;
-    
+
     m_ShaderProgram->Bind();
     if (m_VertexArray != nullptr)
         m_VertexArray->Bind();
-
 
     // this could be placed much better for optimization
 
@@ -53,19 +52,18 @@ bool RenderObject::Render()
         For now we content ourselves with throwing in the model matrix
     */
     SetShaders();
-    
 
     DrawCall();
     return false;
 }
 
-RenderObject* RenderObject::Duplicate()
+RenderObject *RenderObject::Duplicate()
 {
-    RenderObject* new_obj = new RenderObject(*this);
+    RenderObject *new_obj = new RenderObject(*this);
     new_obj->SetPosition(GetPosition());
     logger.Log(LOGTYPE::INFO, "RenderObject::Duplicate() --> duplicated object.");
     return new_obj;
-}   
+}
 
 void RenderObject::SetPosition(const glm::vec3 &position)
 {
@@ -94,23 +92,27 @@ void RenderObject::Scale(float scale)
 void RenderObject::DrawCall() const
 {
     WireFrame_RAII wireframe(m_bWireFrame);
-    
 
     if (m_ObjectType == OBJECTYPE::ComplexModelObject)
     {
         m_MeshModel->Render(renderer.GetLightingModel(), m_ShaderProgram);
         return;
     }
-    StencilOutline_RAII stencil(m_bStencilOutline, (RenderObject*)this);
+    StencilOutline_RAII stencil(m_bStencilOutline, (RenderObject *)this);
     int count = m_VertexArray->GetCount();
+
     if (m_bUseIndexBuffer)
     {
-       // printf("Count %d\n", count);
+        //printf("Count %d\n", count);
+        // glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
     }
     else
     {
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //printf("here %d\n", count);
+        glDrawArrays(GL_TRIANGLES, 0, count);
+
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 }
 
@@ -118,87 +120,89 @@ void RenderObject::SetShaders()
 {
     /* We put shaders common to all objects here */
     m_ShaderProgram->SetUniformMat4("model", m_Model);
-    if(!gl.UpdateCameraMVP(m_ShaderProgram))
+    if (!gl.UpdateCameraMVP(m_ShaderProgram))
         logger.Log(LOGTYPE::ERROR, "RenderObject::SetShaders() --> UpdateCameraMVP() failed\n");
 
-    switch(renderer.GetLightingModel())
+    switch (renderer.GetLightingModel())
     {
-        case LightingModel::Phong: HandlePhongShaders(); break;
-        default: break;
+    case LightingModel::Phong:
+        HandlePhongShaders();
+        break;
+    default:
+        break;
     }
     return;
 }
 
-
-void printVec(const glm::vec3& vec)
+void printVec(const glm::vec3 &vec)
 {
     printf("%.2f, %.2f, %.2f\n", vec.x, vec.y, vec.z);
 }
 
 void RenderObject::HandlePhongShaders()
 {
-   // Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
-    switch(m_ObjectType)
+    // Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
+    switch (m_ObjectType)
     {
-        case OBJECTYPE::PointLightSource:
-        {
-            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-           // m_ShaderProgram->SetUniformVec3("lightColor", m_Light.ambient + m_Light.diffuse);
-            break;
-        }
-        case OBJECTYPE::RegularMaterial:
-        {
-            // this is patchwork for now
-            // need to clean this up
-            auto camera_pos = gl.GetCamera()->GetPosition();
-            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
-            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-            // lighting uniforms should already be set because we use the same shader for both light sources and other objects
-            m_ShaderProgram->SetUniformVec3("material.ambient", m_Material.ambient);
-            m_ShaderProgram->SetUniformVec3("material.diffuse", m_Material.diffuse);
-            m_ShaderProgram->SetUniformVec3("material.specular", m_Material.specular);
-            m_ShaderProgram->SetUniform1f("material.shininess", m_Material.shininess);
-            break;
-        }
-        case OBJECTYPE::TexturedObject:
-        {
-            
-            auto camera_pos = gl.GetCamera()->GetPosition();
-            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
-            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-            // lighting uniforms should already be set because we use the same shader for both light sources and other objects
-            m_TexturedObject.Bind();
-            m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
-            m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
-            m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
-            m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
-            m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 0);
-        }
-        case OBJECTYPE::ComplexModelObject:
-        {
-            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-            break; // rest  set in draw call
-        }
-        case OBJECTYPE::OutlineObject:
-        {
-            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-            break;
-        }
-        case OBJECTYPE::ChunkMesh:
-        {
-            auto camera_pos = gl.GetCamera()->GetPosition();
-            m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
-            m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
-            m_TexturedObject.Bind();
-            m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
-            m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
-            m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
-            m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
-            m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 0);
-            break;
-        }
-        default:
-            break;
+    case OBJECTYPE::PointLightSource:
+    {
+        m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+        // m_ShaderProgram->SetUniformVec3("lightColor", m_Light.ambient + m_Light.diffuse);
+        break;
+    }
+    case OBJECTYPE::RegularMaterial:
+    {
+        // this is patchwork for now
+        // need to clean this up
+        auto camera_pos = gl.GetCamera()->GetPosition();
+        m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+        m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+        // lighting uniforms should already be set because we use the same shader for both light sources and other objects
+        m_ShaderProgram->SetUniformVec3("material.ambient", m_Material.ambient);
+        m_ShaderProgram->SetUniformVec3("material.diffuse", m_Material.diffuse);
+        m_ShaderProgram->SetUniformVec3("material.specular", m_Material.specular);
+        m_ShaderProgram->SetUniform1f("material.shininess", m_Material.shininess);
+        break;
+    }
+    case OBJECTYPE::TexturedObject:
+    {
+
+        auto camera_pos = gl.GetCamera()->GetPosition();
+        m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+        m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+        // lighting uniforms should already be set because we use the same shader for both light sources and other objects
+        m_TexturedObject.Bind();
+        m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
+        m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
+        m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+        m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
+        m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 0);
+    }
+    case OBJECTYPE::ComplexModelObject:
+    {
+        m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+        break; // rest  set in draw call
+    }
+    case OBJECTYPE::OutlineObject:
+    {
+        m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+        break;
+    }
+    case OBJECTYPE::ChunkMesh:
+    {
+        auto camera_pos = gl.GetCamera()->GetPosition();
+        m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
+        m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
+        m_TexturedObject.Bind();
+        m_ShaderProgram->SetUniform1f("textureObject.shininess", m_TexturedObject.Shininess);
+        m_ShaderProgram->SetUniform1i("textureObject.diffuseMap", m_TexturedObject.GetDiffuseSlot());
+        m_ShaderProgram->SetUniform1i("textureObject.specularMap", m_TexturedObject.GetSpecularSlot());
+        m_ShaderProgram->SetUniform1i("textureObject.useDiffuse", 1);
+        m_ShaderProgram->SetUniform1i("textureObject.useSpecular", 0);
+        break;
+    }
+    default:
+        break;
     }
 }
 
@@ -211,8 +215,8 @@ StencilOutline_RAII::StencilOutline_RAII(bool use, RenderObject *obj) : m_Use(us
     }
     else
     {
-        glStencilFunc(GL_ALWAYS, 1, 0xFF); 
-        glStencilMask(0xFF); 
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilMask(0xFF);
     }
 }
 
@@ -230,8 +234,8 @@ StencilOutline_RAII::~StencilOutline_RAII()
             */
             auto type = m_Obj->m_ObjectType;
             glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-            glStencilMask(0x00); 
-            //glDisable(GL_DEPTH_TEST);
+            glStencilMask(0x00);
+            // glDisable(GL_DEPTH_TEST);
             m_Obj->ToggleStencilOutline();
             m_Obj->Scale(STENCIL_OUTLINE_SCALE_FACTOR);
             m_Obj->m_ObjectType = OBJECTYPE::OutlineObject;
@@ -239,9 +243,9 @@ StencilOutline_RAII::~StencilOutline_RAII()
             m_Obj->m_ObjectType = type;
             m_Obj->Scale(STENCIL_OUTLINE_INV_SCALE_FACTOR);
             m_Obj->ToggleStencilOutline();
-            glStencilMask(0xff); 
+            glStencilMask(0xff);
             glStencilFunc(GL_ALWAYS, 1, 0xFF);
-            glEnable(GL_DEPTH_TEST);  
+            glEnable(GL_DEPTH_TEST);
         }
     }
 }
