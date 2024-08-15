@@ -25,13 +25,17 @@ struct GPUBuddyNode
 };
 
 
-
+struct GPUAllococation
+{
+    uint64_t offset;
+    uint64_t size;
+};
 
 
 class GPUAllocator 
 {
 public:
-    GPUAllocator(float percentMemory);
+    GPUAllocator(float percentMemory, uint32_t alignment);
     ~GPUAllocator();
     
     void InsertHead(GPUBuddyNode* node);
@@ -46,13 +50,12 @@ public:
     void FreeData(const std::string& key);
 
     bool PutData(const std::string& key, void* data, uint64_t sizeInBytes, bool realloc);
-
     bool PutData(const std::string& key, void* data, uint64_t sizeInBytes);
     GPUBuddyNode* FindAndCreateNode(GPUBuddyNode *currNode, uint64_t bytesRequested);
     int nodeCount;
 
-
-
+    uint32_t m_VertexAlignment;
+    uint64_t m_MaxMemory;
     uint64_t m_UsedMemory;
     uint64_t m_AllocatorCapacity;
 private:
@@ -61,10 +64,7 @@ private:
     
 
     std::string m_DeviceName;
-    
-
     GPUBuddyNode* m_RootNode;
-
 
     //GPUBuddyNode head;
 

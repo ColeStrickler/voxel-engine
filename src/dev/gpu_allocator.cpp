@@ -10,7 +10,8 @@ GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBud
     right = nullptr;
 }
 
-GPUAllocator::GPUAllocator(float percentMemory) {
+GPUAllocator::GPUAllocator(float percentMemory, uint32_t alignment) : m_VertexAlignment(alignment)
+{
     assert(percentMemory > 0.0f && percentMemory <= 1.0f);
 
 
@@ -47,12 +48,13 @@ GPUAllocator::GPUAllocator(float percentMemory) {
     } 
 
     // ensure we have a power of 2
-    m_AllocatorCapacity = POWER_OF_2(static_cast<uint64_t>(percentMemory * memInfo.free)); 
+    m_MaxMemory = percentMemory * memInfo.free;
+    m_AllocatorCapacity = POWER_OF_2(static_cast<uint64_t>(percentMemory * memInfo.free));
     m_UsedMemory = 0;
 
     m_RootNode = new GPUBuddyNode(true, m_AllocatorCapacity, 0, nullptr, false);
-    m_VB = new VertexBuffer(0);
-    m_VB->UnsetData(0, m_AllocatorCapacity);
+    m_VB = new VertexBuffer(m_AllocatorCapacity);
+    //m_VB->UnsetData(0, m_AllocatorCapacity);
     nvmlShutdown();
 }
 
@@ -69,10 +71,13 @@ VertexBuffer *GPUAllocator::GetVertexBuffer()
 
 void GPUAllocator::FreeData(const std::string &key)
 {
+    EMIT_PROFILE_TOKEN
     auto& nodes = m_AllocTracker[key];
     for (auto& node : nodes)
-        FreeNode(node);
-
+    {    FreeNode(node);
+        //printf("free data %lld\n", node.offset);
+        //m_VB->UnsetData(node.offset, node.size);
+    }
     //glInvalidateBufferSubData --> this will work
     m_AllocTracker.erase(key);
 }
@@ -80,27 +85,39 @@ void GPUAllocator::FreeData(const std::string &key)
 bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBytes, bool realloc)
 {
    // printf("size: %lld\n", sizeInBytes);
-
-    m_VB->Grow(data, sizeInBytes, m_UsedMemory);
+    while (m_UsedMemory + sizeInBytes > m_AllocatorCapacity)
+    {
+        if (m_AllocatorCapacity == m_MaxMemory)
+            return false;
+        
+        m_AllocatorCapacity = std::min(m_AllocatorCapacity*2, m_MaxMemory);
+        
+        m_VB->Grow(m_AllocatorCapacity, m_UsedMemory);
+    }
+    m_VB->SetData(data, m_UsedMemory, sizeInBytes);
+    //m_AllocTracker[key].push_back({m_UsedMemory, sizeInBytes});
+    
     m_UsedMemory += sizeInBytes;
     return true;
 }
 
 bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBytes)
 {
-    GPUBuddyNode* allocatedNode = FindAndCreateNode(m_RootNode, sizeInBytes);
+    EMIT_PROFILE_TOKEN
+    GPUBuddyNode* allocatedNode = FindAndCreateNode(m_RootNode, sizeInBytes+m_VertexAlignment);
     if (allocatedNode == nullptr)
     {
-        printf("not found!\n");
         return false;
     }
     m_AllocTracker[key].push_back(allocatedNode); // allocation was successful
-
-    printf("size %lld\n", sizeInBytes);
     /*
         Now that we have confirmed we have space we can actually put it on the GPU
     */
-    m_VB->SetData(data, allocatedNode->offset, sizeInBytes);
+
+    uint64_t aligned_addr = (allocatedNode->offset + (m_VertexAlignment)) - ((allocatedNode->offset + m_VertexAlignment)%m_VertexAlignment);
+    uint64_t address = allocatedNode->offset % m_VertexAlignment == 0 ? allocatedNode->offset : aligned_addr;
+    //printf("address : %lld aligned_addr : %lld size : %lld\n", address%72, aligned_addr%72, sizeInBytes);
+    m_VB->SetData(data, address, sizeInBytes);
     return true;
 }
 

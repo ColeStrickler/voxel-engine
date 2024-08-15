@@ -8,6 +8,7 @@ VertexBuffer::VertexBuffer(uint64_t size)
     glCreateBuffers(1, &m_BufferId);
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
     glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, size, NULL); // init to zero
 }
 
 VertexBuffer::VertexBuffer(float *data, uint64_t size)
@@ -25,18 +26,18 @@ VertexBuffer::~VertexBuffer()
     //printf("~VertexBuffer() \n");
 }
 
-void VertexBuffer::Grow(void *data, uint64_t dataSize, uint64_t oldSize)
+void VertexBuffer::Grow(uint64_t newSize, uint64_t oldSize)
 {
     //printf("oldsize: %lld\n, newSize: %lld\n", oldSize, oldSize+dataSize);
     unsigned int newBufferId;
     glCreateBuffers(1, &newBufferId);
     glBindBuffer(GL_ARRAY_BUFFER, newBufferId);
-    glBufferData(GL_ARRAY_BUFFER, dataSize+oldSize, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, newSize, nullptr, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_COPY_READ_BUFFER, m_BufferId);
     glBindBuffer(GL_COPY_WRITE_BUFFER, newBufferId);
     glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, oldSize);
-    glBufferSubData(GL_ARRAY_BUFFER, oldSize, dataSize, data);
+    //glBufferSubData(GL_ARRAY_BUFFER, oldSize, dataSize, data);
     glDeleteBuffers(1, &m_BufferId);
     m_BufferId = newBufferId;
 }
@@ -66,13 +67,14 @@ void VertexBuffer::SetData(const void *data, uint64_t offset, uint64_t size)
 void VertexBuffer::UnsetData(uint64_t offset, uint64_t size)
 {
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
+    std::vector<char> vec(size, 0x0);
+    glBufferSubData(GL_ARRAY_BUFFER, offset, vec.size(), vec.data());
     glInvalidateBufferSubData(m_BufferId, offset, size);
 }
 
 IndexBuffer::IndexBuffer(uint32_t *indices, uint32_t count) : m_Count(count)
 {
     glCreateBuffers(1, &m_BufferId);
-
     // GL_ELEMENT_ARRAY_BUFFER is not valid without an actively bound Vertex Array Object
     // Binding with GL_ARRAY_BUFFER allows this to always be loaded
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);

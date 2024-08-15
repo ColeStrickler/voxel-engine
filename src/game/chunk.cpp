@@ -5,8 +5,8 @@ extern Logger logger;
 extern Renderer renderer;
 
 int MAX_CHUNKS = 1000;
-float CHUNK_DISTANCE = 10.0f;
-float DELETE_DISTANCE = 10.0f;
+float CHUNK_DISTANCE = 2.0f;
+float DELETE_DISTANCE = 2.0f;
 
 std::condition_variable ChunkManager::m_WorkerCV;
 std::mutex ChunkManager::m_WorkerLock;
@@ -27,6 +27,7 @@ FastNoiseLite ChunkManager::m_StructureNoise;
 FastNoiseLite ChunkManager::m_BiomeNoise;
 std::vector<Chunk *> ChunkManager::m_ActiveChunks;
 std::pair<int, int> ChunkManager::m_CurrentChunk;
+std::vector<ChunkVertex> ChunkManager::m_stashedVertices;
 
 #define DEFAULT_CHUNK_GROUND 64
 #define HEIGHT_SCALE 96.0f // multiplier to adjust terrain
@@ -77,11 +78,8 @@ void Chunk::GenerateChunkMesh(ShaderProgram *sp)
     // m_VB->SetData((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
     //m_VB->SetLayout(vertex_layout);
 
-    printf("Chunk::GenerateChunkMesh()\n");
-    ChunkManager::m_GPUMemoryManager->PutData(GetPositionAsString(), m_Vertices.data(), m_Vertices.size()*sizeof(ChunkVertex), false);
-   // printf("here! %lld\n", ChunkManager::m_VA->GetCount() + m_Vertices.size());
-    ChunkManager::m_VA->AddVertexBuffer(ChunkManager::m_GPUMemoryManager->GetVertexBuffer());
-    ChunkManager::m_VA->SetCount(ChunkManager::m_VA->GetCount() + m_Vertices.size());
+    //printf("Chunk::GenerateChunkMesh()\n");
+    
 
    // printf("here!\n");
     //m_VA = new VertexArray();
@@ -344,7 +342,7 @@ BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 
 ChunkManager::ChunkManager()
 {
-    m_GPUMemoryManager = new GPUAllocator(0.8f);
+    m_GPUMemoryManager = new GPUAllocator(0.5f, sizeof(ChunkVertex)*3);
     auto VB = m_GPUMemoryManager->GetVertexBuffer();
     BufferLayout *vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
                                                     new BufferElement("faceBlockType", ShaderDataType::Int, false),
@@ -353,6 +351,7 @@ ChunkManager::ChunkManager()
     
 
     m_VA = new VertexArray();
+    ChunkManager::m_VA->SetCount(ChunkManager::m_GPUMemoryManager->m_AllocatorCapacity/sizeof(ChunkVertex)); // 
     m_VA->AddVertexBuffer(VB);
    // m_VA->SetCount(m_GPUMemoryManager->m_AllocatorCapacity/sizeof(ChunkVertex));
 
@@ -391,7 +390,7 @@ ChunkManager::ChunkManager()
     }
     m_TextureAtlasSpecular = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
     m_TextureAtlasDiffuse = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
-
+    
 
     m_RenderObj = new RenderObject(m_VA, VB, m_ChunkShader, OBJECTYPE::ChunkMesh);
     m_RenderObj->m_TexturedObject.AddDiffuseMap(m_TextureAtlasDiffuse);
@@ -538,7 +537,7 @@ void ChunkManager::PerFrame()
         std::unique_lock tdLock(m_ToDeleteLock);
         for (auto &td : m_ToDeleteList)
         {
-            //m_GPUMemoryManager->FreeData(td);
+            m_GPUMemoryManager->FreeData(td);
             m_UsedChunks.erase(td);
         }
         m_ToDeleteList.clear();
@@ -555,6 +554,20 @@ void ChunkManager::PerFrame()
         }
         auto chunk = m_FinishedWork.front();
         m_FinishedWork.pop();
+        
+        
+            
+        //m_stashedVertices.insert(m_stashedVertices.begin(), chunk->m_Vertices.begin(), chunk->m_Vertices.end());
+
+        ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size()*sizeof(ChunkVertex));
+        // printf("here! %lld\n", ChunkManager::m_VA->GetCount() + m_Vertices.size());
+        ChunkManager::m_VA->AddVertexBuffer(ChunkManager::m_GPUMemoryManager->GetVertexBuffer());
+        
+        // m_stashedVertices.clear();
+        // m_stashedVertices.shrink_to_fit();
+        
+
+        // clear
         chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
 
         /*

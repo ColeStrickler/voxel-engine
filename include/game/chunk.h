@@ -109,7 +109,7 @@ public:
     void GenerateChunkMesh(ShaderProgram* sp);
     bool isActive(int x, int y, int z);
     bool m_bHasDiamond;
-
+    std::vector<ChunkVertex> m_Vertices;
 
     static BIOMETYPE BiomeSelect(float biomeNoise);
 private:
@@ -123,7 +123,6 @@ private:
     static void AddStructure(Chunk *chunk, int x, int y, int z, STRUCTURETYPE structure, std::vector<Block*>& actives, std::vector<std::vector<int>>& activeCoords);
     
     static int OreGetVeinSize(BlockType ore);
-    std::vector<ChunkVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
     Block m_Blocks[CHUNK_WIDTH][MAX_CHUNK_HEIGHT][CHUNK_WIDTH];
     IndexBuffer* m_IB;
@@ -188,7 +187,7 @@ public:
     static void CleanFarChunks(float div);
     void MapMove();
     
-
+    static std::vector<ChunkVertex> m_stashedVertices;
     static RenderObject* m_RenderObj;
     static VertexArray* m_VA;
     static GPUAllocator* m_GPUMemoryManager;
