@@ -14,14 +14,14 @@ std::mutex ChunkManager::m_FinishedItemsLock;
 std::queue<ChunkWorkItem *> ChunkManager::m_WorkItems;
 std::mutex ChunkManager::m_ToDeleteLock;
 std::vector<std::string> ChunkManager::m_ToDeleteList;
-std::queue<Chunk *> ChunkManager::m_FinishedWork;
+std::queue<ChunkWorkItem*> ChunkManager::m_FinishedWork;
 std::unordered_map<std::string, Chunk *> ChunkManager::m_UsedChunks;
 ShaderProgram *ChunkManager::m_ChunkShader;
-RenderObject* ChunkManager::m_RenderObj;
-GPUAllocator* ChunkManager::m_GPUMemoryManager;
+RenderObject *ChunkManager::m_RenderObj;
+GPUAllocator *ChunkManager::m_GPUMemoryManager;
 Texture *ChunkManager::m_TextureAtlasDiffuse;
 Texture *ChunkManager::m_TextureAtlasSpecular;
-VertexArray* ChunkManager::m_VA;
+VertexArray *ChunkManager::m_VA;
 FastNoiseLite ChunkManager::m_ChunkHeightNoise;
 FastNoiseLite ChunkManager::m_StructureNoise;
 FastNoiseLite ChunkManager::m_BiomeNoise;
@@ -35,7 +35,6 @@ std::vector<ChunkVertex> ChunkManager::m_stashedVertices;
 
 Chunk::Chunk(int x, int z, ShaderProgram *sp) : m_xCoord(x), m_zCoord(z)
 {
-
     GenerateChunk();
     GenerateChunkMesh(sp);
 }
@@ -71,31 +70,29 @@ std::string Chunk::GetPositionAsString()
 void Chunk::GenerateChunkMesh(ShaderProgram *sp)
 {
 
-    
-    //m_IB = new IndexBuffer(m_Indices.data(), m_Indices.size());
-    //m_VB = new VertexBuffer((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
-    // m_VB = new VertexBuffer(sizeof(ChunkVertex)*24*CHUNK_WIDTH*CHUNK_WIDTH*MAX_CHUNK_HEIGHT);
-    // m_VB->SetData((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
-    //m_VB->SetLayout(vertex_layout);
+    // m_IB = new IndexBuffer(m_Indices.data(), m_Indices.size());
+    // m_VB = new VertexBuffer((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
+    //  m_VB = new VertexBuffer(sizeof(ChunkVertex)*24*CHUNK_WIDTH*CHUNK_WIDTH*MAX_CHUNK_HEIGHT);
+    //  m_VB->SetData((float *)m_Vertices.data(), m_Vertices.size() * sizeof(ChunkVertex));
+    // m_VB->SetLayout(vertex_layout);
 
-    //printf("Chunk::GenerateChunkMesh()\n");
-    
+    // printf("Chunk::GenerateChunkMesh()\n");
 
-   // printf("here!\n");
-    //m_VA = new VertexArray();
-    //m_VA->AddVertexBuffer(m_VB);
-   // m_VA->AddIndexBuffer(m_IB);
-    //m_VA->SetCount(m_Vertices.size());
-    //m_RenderObj = new RenderObject(m_VA, m_VB, sp, OBJECTYPE::ChunkMesh);
-    //m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
-    //m_RenderObj->Translate(glm::vec3(m_xCoord * CHUNK_WIDTH, 0.0f, m_zCoord * CHUNK_WIDTH));
+    // printf("here!\n");
+    // m_VA = new VertexArray();
+    // m_VA->AddVertexBuffer(m_VB);
+    // m_VA->AddIndexBuffer(m_IB);
+    // m_VA->SetCount(m_Vertices.size());
+    // m_RenderObj = new RenderObject(m_VA, m_VB, sp, OBJECTYPE::ChunkMesh);
+    // m_RenderObj = new RenderObject(m_VA, m_VB, sp, m_IB, OBJECTYPE::ChunkMesh);
+    // m_RenderObj->Translate(glm::vec3(m_xCoord * CHUNK_WIDTH, 0.0f, m_zCoord * CHUNK_WIDTH));
     //// if (m_bHasDiamond)
     //     m_RenderObj->ToggleWireFrame();
-   // printf("num vertices %d\n", m_Vertices.size());
+    // printf("num vertices %d\n", m_Vertices.size());
     m_Vertices.clear();
     m_Vertices.shrink_to_fit();
-    //m_Indices.clear();
-    //m_Indices.shrink_to_fit();
+    // m_Indices.clear();
+    // m_Indices.shrink_to_fit();
 }
 
 bool Chunk::isActive(int x, int y, int z)
@@ -106,19 +103,54 @@ bool Chunk::isActive(int x, int y, int z)
     return false;
 }
 
-void Chunk::BlockGenVertices(BlockType blocktype, float x, float y, float z, BLOCKFACE face)
+bool Chunk::SetBlock(int x, int y, int z, BlockType block)
 {
-   //  printf("face: %d ==> %.2f, %.2f, %.2f\n", face,x, y, z);
-    auto type = blocktype;
-   // auto faceIndices = std::vector<unsigned int>{0, 1, 2, 1, 3, 2};
-    //for (int i = 0; i < faceIndices.size(); i++)
-    //    faceIndices[i] += m_Vertices.size();
-    //m_Indices.insert(m_Indices.end(), faceIndices.begin(), faceIndices.end());
+     //printf("Chunk::SetBlock()\n");
+     printf("Chunk::SetBlock() %d, %d, %d\n", x, y, z);
+    if (IS_IN_CHUNK(x, y, z))
+    {  
+        
+        Block& blk = this->m_Blocks[x][y][z];
+        printf("Chunk::SetBlock() %d, %d, %d\n", x, y, z);
+        //f (blk.getBlockType() == (BlockType)0)
+         //   while(1);
 
-    std::vector<ChunkVertex> vertvec = GetFace(face, blocktype, x+m_xCoord*CHUNK_WIDTH, y, z+m_zCoord*CHUNK_WIDTH);
-    m_Vertices.insert(m_Vertices.end(), vertvec.begin(), vertvec.end());
+        //printf("act %d\n", blk.m_Active_Type);
+        //auto act = blk.isActive();
+        
+        if (true)
+        {
+            //blk.setActive(true);
+            //blk.setType(block);
+            printf("Chunk::SetBlock()\n");
+            if (IS_IN_CHUNK(x, y+1, z) && !m_Blocks[x][y+1][z].isActive())
+                BlockGenVertices(block, x, y, z, BLOCKFACE::TOP);
+            if (IS_IN_CHUNK(x, y-1, z) && !m_Blocks[x][y-1][z].isActive())
+                BlockGenVertices(block, x, y, z, BLOCKFACE::BOTTOM); 
+
+
+            BlockGenVertices(block, x, y, z, BLOCKFACE::FRONT); 
+            BlockGenVertices(block, x, y, z, BLOCKFACE::BACK); 
+            BlockGenVertices(block, x, y, z, BLOCKFACE::LEFT); 
+            BlockGenVertices(block, x, y, z, BLOCKFACE::RIGHT);  
+            return true;   
+        }
+    }
+    return false;
 }
 
+void Chunk::BlockGenVertices(BlockType blocktype, float x, float y, float z, BLOCKFACE face)
+{
+    //  printf("face: %d ==> %.2f, %.2f, %.2f\n", face,x, y, z);
+    auto type = blocktype;
+    // auto faceIndices = std::vector<unsigned int>{0, 1, 2, 1, 3, 2};
+    // for (int i = 0; i < faceIndices.size(); i++)
+    //    faceIndices[i] += m_Vertices.size();
+    // m_Indices.insert(m_Indices.end(), faceIndices.begin(), faceIndices.end());
+
+    std::vector<ChunkVertex> vertvec = GetFace(face, blocktype, x + m_xCoord * CHUNK_WIDTH, y, z + m_zCoord * CHUNK_WIDTH);
+    m_Vertices.insert(m_Vertices.end(), vertvec.begin(), vertvec.end());
+}
 
 void Chunk::GenerateChunk()
 {
@@ -167,7 +199,6 @@ void Chunk::GenerateChunk()
         }
     }
 
-    
     for (int i = 0; i < actives.size(); i++)
     {
         std::vector<BLOCKFACE> faces;
@@ -182,18 +213,16 @@ void Chunk::GenerateChunk()
         if (isSurface == 1)
         {
             faces.push_back(BLOCKFACE::TOP);
-            if (!isActive(x - 1, y, z) || !IS_IN_CHUNK(x-1, y, z))
+            if (!isActive(x - 1, y, z) || !IS_IN_CHUNK(x - 1, y, z))
                 faces.push_back(BLOCKFACE::LEFT);
-            if (!isActive(x + 1, y, z) || !IS_IN_CHUNK(x+1, y, z))
+            if (!isActive(x + 1, y, z) || !IS_IN_CHUNK(x + 1, y, z))
                 faces.push_back(BLOCKFACE::RIGHT);
-            if (!isActive(x, y - 1, z) || !IS_IN_CHUNK(x, y-1, z))
+            if (!isActive(x, y - 1, z) || !IS_IN_CHUNK(x, y - 1, z))
                 faces.push_back(BLOCKFACE::BOTTOM);
-            if (!isActive(x, y, z - 1) || !IS_IN_CHUNK(x, y, z-1))
+            if (!isActive(x, y, z - 1) || !IS_IN_CHUNK(x, y, z - 1))
                 faces.push_back(BLOCKFACE::BACK);
-            if (!isActive(x, y, z + 1) || !IS_IN_CHUNK(x, y, z+1))
+            if (!isActive(x, y, z + 1) || !IS_IN_CHUNK(x, y, z + 1))
                 faces.push_back(BLOCKFACE::FRONT);
-
-
         }
         else
         {
@@ -208,12 +237,11 @@ void Chunk::GenerateChunk()
             if (y == 0)
                 faces.push_back(BLOCKFACE::BOTTOM);
         }
-        
+
         for (auto &face : faces)
             BlockGenVertices(block->getBlockType(), x, y, z, face);
     }
 }
-
 
 void Chunk::OrePopulatePass(std::vector<int> coordStart, Chunk *chunk)
 {
@@ -342,19 +370,18 @@ BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 
 ChunkManager::ChunkManager()
 {
-    m_GPUMemoryManager = new GPUAllocator(0.5f, sizeof(ChunkVertex)*3);
+    m_GPUMemoryManager = new GPUAllocator(0.5f, sizeof(ChunkVertex) * 3);
+    m_CurrentChunk = {0, 0};
     auto VB = m_GPUMemoryManager->GetVertexBuffer();
     BufferLayout *vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),
                                                     new BufferElement("faceBlockType", ShaderDataType::Int, false),
                                                     new BufferElement("texCoord", ShaderDataType::Float2, false)});
     VB->SetLayout(vertex_layout);
-    
 
     m_VA = new VertexArray();
-    ChunkManager::m_VA->SetCount(ChunkManager::m_GPUMemoryManager->m_AllocatorCapacity/sizeof(ChunkVertex)); // 
+    ChunkManager::m_VA->SetCount(ChunkManager::m_GPUMemoryManager->m_AllocatorCapacity / sizeof(ChunkVertex)); //
     m_VA->AddVertexBuffer(VB);
-   // m_VA->SetCount(m_GPUMemoryManager->m_AllocatorCapacity/sizeof(ChunkVertex));
-
+    // m_VA->SetCount(m_GPUMemoryManager->m_AllocatorCapacity/sizeof(ChunkVertex));
 
     m_ChunkHeightNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_ChunkHeightNoise.SetSeed(DEFAULT_NOISE_SEED);
@@ -390,14 +417,12 @@ ChunkManager::ChunkManager()
     }
     m_TextureAtlasSpecular = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "spec");
     m_TextureAtlasDiffuse = new Texture("/home/cole/Documents/voxel-engine/src/textures/texture_atlas.png", "diff");
-    
 
     m_RenderObj = new RenderObject(m_VA, VB, m_ChunkShader, OBJECTYPE::ChunkMesh);
     m_RenderObj->m_TexturedObject.AddDiffuseMap(m_TextureAtlasDiffuse);
     m_RenderObj->m_TexturedObject.AddSpecularMap(m_TextureAtlasSpecular);
 
-
-     renderer.AddRenderObject(m_RenderObj);
+    renderer.AddRenderObject(m_RenderObj);
     // can see CHUNK_DISTANCE each way
     // auto chunk = new Chunk(0, 0, m_ChunkShader);
     // AddChunkToRenderer(chunk);
@@ -443,61 +468,68 @@ void ChunkManager::ChunkWorkerThread()
         auto work = m_WorkItems.front();
         m_WorkItems.pop();
         lock.unlock();
-
         // while(1);
         switch (work->cmd)
         {
-        case CHUNK_WORKER_CMD::FREE: // we will want to introduce logic to save changes to chunks here eventually
-        {
-
-            /*
-                Add the chunk to the delete list so we can remove it from the used list
-            */
-            
-            std::unique_lock tdLock(m_ToDeleteLock);
-            m_ToDeleteList.push_back(work->chunk->GetPositionAsString());
-            
-
-            delete work->chunk;
-            // printf("difference free %ld 0x%x\n", int(util::GetMemoryUsageKb())-before, work->chunk);
-            break;
-        }
-        case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
-        {
-            if (CAN_ALLOC_CHUNK && DistanceFromCurrentChunk(work->x, work->z) < CHUNK_DISTANCE)
+            case CHUNK_WORKER_CMD::FREE: // we will want to introduce logic to save changes to chunks here eventually
             {
-                auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true);
-                std::unique_lock flock(m_FinishedItemsLock);
-                m_FinishedWork.push(chunk);
-            }
-            else
-            {
+                
+                /*
+                    Add the chunk to the delete list so we can remove it from the used list
+                */
+
                 std::unique_lock tdLock(m_ToDeleteLock);
-                m_ToDeleteList.push_back(pair2String(work->x, work->z));
+                m_ToDeleteList.push_back(work->chunk->GetPositionAsString());
+
+                delete work->chunk;
+                delete work;
+                // printf("difference free %ld 0x%x\n", int(util::GetMemoryUsageKb())-before, work->chunk);
+                break;
             }
+            case CHUNK_WORKER_CMD::ALLOC: // we will want to introduce logic to load changed chunks here eventually
+            {
+                if (CAN_ALLOC_CHUNK && DistanceFromCurrentChunk(work->x, work->z) < CHUNK_DISTANCE)
+                {
+                    auto chunk = new Chunk(work->x, work->z, m_ChunkShader, true);
+                    std::unique_lock flock(m_FinishedItemsLock);
+                    work->chunk = chunk;
+                    m_FinishedWork.push(work);
+                }
+                else
+                {
+                    std::unique_lock tdLock(m_ToDeleteLock);
+                    m_ToDeleteList.push_back(pair2String(work->x, work->z));
+                }
 
-            // lock.unlock();
-            break;
-        }
-        case CHUNK_WORKER_CMD::UPDATE:
-        {
+                // lock.unlock();
+                break;
+            }
+            case CHUNK_WORKER_CMD::UPDATE:
+            {
+                
+                std::unique_lock flock(m_FinishedItemsLock);
+                //auto& update = work->update;
+                //auto chunk = work->chunk;
+                m_FinishedWork.push(work);
+                break;
+            }
+            case CHUNK_WORKER_CMD::STRUCTURE_ADD:
+            {
+                // float biomeNoise = m_BiomeNoise.GetNoise(static_cast<float>(work->x), static_cast<float>(work->z));
+                // auto biome = Chunk::BiomeSelect(biomeNoise);
+                // float structureNoise = m_StructureNoise.GetNoise(static_cast<float>(work->x), static_cast<float>(work->z));
+                // auto structureType = BIOME::GetStructure(biome, structureNoise);
 
-            break;
-        }
-        case CHUNK_WORKER_CMD::STRUCTURE_ADD:
-        {
-            //float biomeNoise = m_BiomeNoise.GetNoise(static_cast<float>(work->x), static_cast<float>(work->z));
-            //auto biome = Chunk::BiomeSelect(biomeNoise);
-            //float structureNoise = m_StructureNoise.GetNoise(static_cast<float>(work->x), static_cast<float>(work->z));
-            //auto structureType = BIOME::GetStructure(biome, structureNoise);
-
-            break;
-        }
-        default:
-            break;
+                break;
+            }
+            default:
+            {
+                
+                break;
+            }
             // logger.Log(LOGTYPE::ERROR, "ChunkManager::ChunkWorkerThread() --> Bad CHUNK_WORKER_CMD");
         }
-        delete work;
+        //delete work;
     }
 }
 
@@ -507,7 +539,6 @@ ChunkManager::~ChunkManager()
 
 void ChunkManager::PerFrame()
 {
-    //printf("actives: %d\n", m_ActiveChunks.size());
     auto pos = gl.GetCamera()->GetPosition();
     auto xz_pos = glm::vec2(pos.x, pos.z);
 
@@ -549,44 +580,102 @@ void ChunkManager::PerFrame()
         if (m_ActiveChunks.size() >= MAX_CHUNKS)
         {
             logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() --> reached max chunks=" + std::to_string(MAX_CHUNKS) + " Discarding newly generated chunk.");
-            //CleanFarChunks(1.6f);
+            // CleanFarChunks(1.6f);
             break;
         }
-        auto chunk = m_FinishedWork.front();
+        auto item = m_FinishedWork.front();
+        auto chunk = item->chunk;
         m_FinishedWork.pop();
-        
-        
-            
-        //m_stashedVertices.insert(m_stashedVertices.begin(), chunk->m_Vertices.begin(), chunk->m_Vertices.end());
 
-        ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size()*sizeof(ChunkVertex));
+        switch(item->cmd)
+        {
+            case CHUNK_WORKER_CMD::ALLOC:
+            {
+                if (!ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size() * sizeof(ChunkVertex)))
+                {
+                    chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done
+                    delete chunk;
+                    break;
+                }
+                chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done
+                m_UsedChunks[chunk->GetPositionAsString()] = chunk;
+                m_ActiveChunks.push_back(chunk);
+                break;
+            }
+            case CHUNK_WORKER_CMD::UPDATE:
+            {
+                auto it = m_UsedChunks.find(pair2String(item->x, item->z));
+                if (it == m_UsedChunks.end()) // a new chunk, not an update
+                {
+                    break;
+                }
+
+                auto chunk = it->second;
+                if (chunk == nullptr)
+                {
+                    break;
+                }
+
+               
+
+
+                auto& update = item->update;
+                if(!chunk->SetBlock(update.x, update.y, update.z, update.type))
+                {
+                    printf("failed set block\n");
+                    break;
+                }
+                if (!ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size() * sizeof(ChunkVertex)))
+                {
+                    chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done
+                    break;
+                }
+                chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
+                break;
+            }
+            default:
+                break;
+        }
+        delete item;
+
+        // m_stashedVertices.insert(m_stashedVertices.begin(), chunk->m_Vertices.begin(), chunk->m_Vertices.end());
+
+        /*
+            Do this if GPU buffer cannot find a valid slot for the data
+        */
         // printf("here! %lld\n", ChunkManager::m_VA->GetCount() + m_Vertices.size());
-        ChunkManager::m_VA->AddVertexBuffer(ChunkManager::m_GPUMemoryManager->GetVertexBuffer());
-        
+        //ChunkManager::m_VA->AddVertexBuffer(ChunkManager::m_GPUMemoryManager->GetVertexBuffer());
+
         // m_stashedVertices.clear();
         // m_stashedVertices.shrink_to_fit();
-        
 
         // clear
-        chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done earier
+        
 
         /*
             We must update the UsedChunks entry here, as we only entered it early as UsedChunks[pos] = nullptr earlier
 
             When accessing from UsedChunks we must ensure that the retrieved pointer is not a nullptr
         */
-        m_UsedChunks[chunk->GetPositionAsString()] = chunk;
-        m_ActiveChunks.push_back(chunk);
 
-        // if (m_UsedChunks.count(chunk->GetPositionAsString()) > 1)
-        //     while(1){printf("COPY! %s\n", chunk->GetPositionAsString());}
-        // logger.Log(LOGTYPE::INFO, "ChunkManager::PerFrame() --> Adding completed chunk to render list");
-       // AddChunkToRenderer(chunk);
-        // printf("chunk %x, chunk->RenderObj %x\n", chunk, chunk->GetRenderObject());
+       
+
         break;
     }
-   
-   //printf("PerFrame() done\n");
+
+    // printf("PerFrame() done\n");
+}
+
+void ChunkManager::PlaceBlock(std::pair<int, int> &chunkCoord, int x, int y, int z, BlockType block)
+{
+    auto it = m_UsedChunks.find(pair2String(chunkCoord.first, chunkCoord.second));
+    BlockUpdate update(x, y, z, block);
+    auto work = new ChunkWorkItem(chunkCoord.first, chunkCoord.second, CHUNK_WORKER_CMD::UPDATE, update);   
+    std::unique_lock lock(m_WorkerLock);
+    printf("push\n");
+    m_WorkItems.push(work);
+    m_WorkerCV.notify_one();
+    //lock.unlock();
 }
 
 void ChunkManager::CleanFarChunks()
@@ -599,7 +688,7 @@ void ChunkManager::CleanFarChunks()
         if (DistanceFromCurrentChunk(chunk) > DELETE_DISTANCE)
         {
             it = m_ActiveChunks.erase(it);
-            //chunk->GetRenderObject()->m_bDelete = true;
+            // chunk->GetRenderObject()->m_bDelete = true;
             ChunkWorkItem *work = new ChunkWorkItem(chunk, CHUNK_WORKER_CMD::FREE);
             std::unique_lock lock(m_WorkerLock);
             m_WorkItems.push(work);
@@ -715,8 +804,21 @@ void ChunkManager::MapMove()
 ChunkWorkItem::ChunkWorkItem(Chunk *nchunk, CHUNK_WORKER_CMD wcmd) : chunk(nchunk), cmd(wcmd)
 {
 }
-ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd), chunk(nullptr) {
-                                                                              };
+
+ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd, BlockUpdate &update):  x(xcoord), z(zcoord), cmd(wcmd), update(update)
+{
+
+}
+
+ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd), chunk(nullptr)
+{
+}
+
+
+std::string ChunkWorkItem::GetPositionAsString()
+{
+    return pair2String(x, z);
+}
 
 std::string pair2String(int x, int y)
 {
@@ -827,4 +929,21 @@ std::vector<ChunkVertex> GetFace(BLOCKFACE face, BlockType type, float x, float 
     default:
         return {};
     }
+}
+
+BlockUpdate::BlockUpdate()
+{
+}
+
+BlockUpdate::BlockUpdate(int x, int y, int z, BlockType block) : x(x), y(y), z(z), type(block)
+{
+
+}
+
+BlockUpdate::BlockUpdate(const BlockUpdate &other)
+{
+    x = other.x;
+    y = other.y;
+    z = other.z;
+    type = other.type;
 }

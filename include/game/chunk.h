@@ -107,6 +107,7 @@ public:
     std::string GetPositionAsString();
     RenderObject* GetRenderObject() { return m_RenderObj; }
     void GenerateChunkMesh(ShaderProgram* sp);
+    bool SetBlock(int x, int y, int z, BlockType block);
     bool isActive(int x, int y, int z);
     bool m_bHasDiamond;
     std::vector<ChunkVertex> m_Vertices;
@@ -162,16 +163,34 @@ enum CHUNK_WORKER_CMD
 
 
 
+struct BlockUpdate
+{
+    BlockUpdate();
+    BlockUpdate(int x, int y, int z, BlockType block);
+    BlockUpdate(const BlockUpdate& other);
+    int x;
+    int y;
+    int z;
+    BlockType type;
+};
+
 struct ChunkWorkItem
 {
 public:
     ChunkWorkItem(Chunk* nchunk, CHUNK_WORKER_CMD wcmd);
+    ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd, BlockUpdate &update);
     ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd);
+    std::string GetPositionAsString();
     int x, z;
 
+    BlockUpdate update;
     Chunk* chunk;
     CHUNK_WORKER_CMD cmd;
 };
+
+
+
+
 
 #define CHUNK_MANAGER_THREADCOUNT 16
 class ChunkManager
@@ -181,7 +200,7 @@ public:
     ~ChunkManager();
 
     void PerFrame();
-
+    static void PlaceBlock(std::pair<int, int>& chunkCoord, int x, int y, int z, BlockType block);
     static void GenChunk(int x, int z);
     static void CleanFarChunks();
     static void CleanFarChunks(float div);
@@ -207,7 +226,7 @@ public:
     static std::mutex m_ToDeleteLock;
     static std::vector<std::string> m_ToDeleteList;
     static std::queue<ChunkWorkItem*> m_WorkItems;
-    static std::queue<Chunk*> m_FinishedWork;
+    static std::queue<ChunkWorkItem*> m_FinishedWork;
     static ShaderProgram* m_ChunkShader;
     static Texture* m_TextureAtlasDiffuse;
     static Texture* m_TextureAtlasSpecular;

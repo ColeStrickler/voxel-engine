@@ -12,6 +12,8 @@ Block::~Block()
 {
 }
 
+bool Block::isActive() const  {return (bool)((m_Active_Type >> 15) & 1);};
+
 void Block::setActive(bool bActive)
 {
     m_Active_Type &= 0x7fff; // clear bit 15

@@ -211,9 +211,25 @@ void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, i
     glm::vec3 wincoord = glm::vec3(xpos, window_height - ypos - 1, depth);
     glm::vec3 objcoord = glm::unProject(wincoord, gl.m_Camera.GetViewMatrix(), gl.m_Camera.GetProjectionMatrix(), viewport);
 
-    RenderObject *selectedObject = renderer.FindClosestObject(objcoord);
-    if (selectedObject)
-        GUI_Manager.HandleObjectSelection(selectedObject);
+    if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        RenderObject *selectedObject = renderer.FindClosestObject(objcoord);
+        if (selectedObject)
+            GUI_Manager.HandleObjectSelection(selectedObject);
+    }
+    else
+    {
+        int chunkX = static_cast<int>(floor(objcoord.x / CHUNK_WIDTH));
+        int chunkZ = static_cast<int>(floor(objcoord.z / CHUNK_WIDTH));
+        std::pair<int, int> chunkCoord = {chunkX, chunkZ};
+        int x = abs(static_cast<int>(objcoord.x) % CHUNK_WIDTH);
+        int z = abs(static_cast<int>(objcoord.z) % CHUNK_WIDTH);
+        int y = static_cast<int>(floor(objcoord.y));
+
+        ChunkManager::PlaceBlock(chunkCoord, x, y, z, BlockType::Dirt);
+
+        printf("got x:%d,z:%d, actual x:%d,z:%d\n", chunkX, chunkZ, ChunkManager::m_CurrentChunk.first, ChunkManager::m_CurrentChunk.second);
+    }
 }
 
 void GLManager::HandleToggleCursorHidden()
@@ -293,7 +309,7 @@ Camera::Camera(float screen_height, float screen_width, float speed, GLManager *
 {
     ChangeScreenDimensions(screen_width, screen_height);
     ChangeMoveSpeed(speed);
-    m_CameraPos = glm::vec3(0.0f, 95.0f, 10.0f);
+    m_CameraPos = glm::vec3(0.0f, 95.0f, 0.0f);
     m_CameraFront = glm::vec3(0.0f, 0.0f, -1.0f) + m_CameraPos;
     m_CameraUp = glm::cross(m_CameraFront, m_CameraRight);
     m_CameraRight = glm::normalize(glm::cross(m_CameraUp, m_CameraFront));

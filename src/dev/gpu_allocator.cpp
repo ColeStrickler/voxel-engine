@@ -80,6 +80,7 @@ void GPUAllocator::FreeData(const std::string &key)
     }
     //glInvalidateBufferSubData --> this will work
     m_AllocTracker.erase(key);
+    
 }
 
 bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBytes, bool realloc)
@@ -88,7 +89,10 @@ bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBy
     while (m_UsedMemory + sizeInBytes > m_AllocatorCapacity)
     {
         if (m_AllocatorCapacity == m_MaxMemory)
+        {
+            printf("reached capacity\n");
             return false;
+        }
         
         m_AllocatorCapacity = std::min(m_AllocatorCapacity*2, m_MaxMemory);
         
@@ -107,6 +111,7 @@ bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBy
     GPUBuddyNode* allocatedNode = FindAndCreateNode(m_RootNode, sizeInBytes+m_VertexAlignment);
     if (allocatedNode == nullptr)
     {
+        //printf("reached capacity\n");
         return false;
     }
     m_AllocTracker[key].push_back(allocatedNode); // allocation was successful
@@ -116,7 +121,7 @@ bool GPUAllocator::PutData(const std::string &key, void *data, uint64_t sizeInBy
 
     uint64_t aligned_addr = (allocatedNode->offset + (m_VertexAlignment)) - ((allocatedNode->offset + m_VertexAlignment)%m_VertexAlignment);
     uint64_t address = allocatedNode->offset % m_VertexAlignment == 0 ? allocatedNode->offset : aligned_addr;
-    //printf("address : %lld aligned_addr : %lld size : %lld\n", address%72, aligned_addr%72, sizeInBytes);
+   
     m_VB->SetData(data, address, sizeInBytes);
     return true;
 }
@@ -127,7 +132,6 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
     assert(bytesRequested > 0);
     //if (bytesRequested < MINALLOC_SIZE)
     //    return nullptr;
-
     GPUBuddyNode* node = nullptr;
     //printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
     if (bytesRequested > currNode->size || currNode->offset >= m_AllocatorCapacity) // traversed too far
