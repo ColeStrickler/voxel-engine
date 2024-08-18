@@ -370,7 +370,10 @@ BlockType Chunk::GetBlockType(int x, int y, int z, int surface, BIOMETYPE biome)
 
 ChunkManager::ChunkManager()
 {
-    m_GPUMemoryManager = new GPUAllocator(0.5f, sizeof(ChunkVertex) * 3);
+
+
+
+    m_GPUMemoryManager = new GPUAllocator(0.4f, sizeof(ChunkVertex) * 3, 2);
     m_CurrentChunk = {0, 0};
     auto VB = m_GPUMemoryManager->GetVertexBuffer();
     BufferLayout *vertex_layout = new BufferLayout({new BufferElement("COORDS", ShaderDataType::Float3, false),

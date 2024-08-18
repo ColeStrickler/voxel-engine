@@ -3,14 +3,54 @@
 extern Logger logger;
 int deleted = 0;
 int created = 0;
-GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, bool leftNode): free(isFree), size(s_size), offset(offset), parent(parent),\
-    leftNode(leftNode)
+GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, int childNum, int totalChildren): free(isFree), size(s_size), offset(offset), parent(parent),\
+    leftNode(leftNode), child_no(childNum), total_children(totalChildren)
 {
     left = nullptr;
     right = nullptr;
+
+    children = new GPUBuddyNode*[totalChildren];
+    for (int i = 0; i < total_children; i++)
+        children[i] = 0;
 }
 
-GPUAllocator::GPUAllocator(float percentMemory, uint32_t alignment) : m_VertexAlignment(alignment), m_Wasted(0)
+GPUBuddyNode::~GPUBuddyNode()
+{
+    delete children;
+}
+
+/*
+    Checks if this node is itself housing the allocation
+*/
+bool GPUBuddyNode::isOccupied()
+{
+    bool occupied = true;
+    for (int i = 0; i < total_children; i++)
+    {
+        if (children[i] != nullptr)
+        {
+            occupied = false;
+            break;
+        }
+        
+    }
+    return occupied && !free;
+}
+
+std::vector<int> GPUBuddyNode::GetChildrenCanUnset()
+{
+     std::vector<int> toUnset;
+
+    for (int i = 0; i < total_children; i++)
+    {
+        if (children[i] == nullptr)
+            toUnset.push_back(i);
+    }
+    return toUnset;
+}
+
+
+GPUAllocator::GPUAllocator(float percentMemory, uint32_t alignment, int treeFanout) : m_VertexAlignment(alignment), m_Wasted(0)
 {
     assert(percentMemory > 0.0f && percentMemory <= 1.0f);
 
@@ -52,7 +92,7 @@ GPUAllocator::GPUAllocator(float percentMemory, uint32_t alignment) : m_VertexAl
     m_AllocatorCapacity = POWER_OF_2(static_cast<uint64_t>(percentMemory * memInfo.free));
     m_UsedMemory = 0;
 
-    m_RootNode = new GPUBuddyNode(true, m_AllocatorCapacity, 0, nullptr, false);
+    m_RootNode = new GPUBuddyNode(true, m_AllocatorCapacity, 0, nullptr, 0, treeFanout);
     m_VB = new VertexBuffer(m_AllocatorCapacity);
     //m_VB->UnsetData(0, m_AllocatorCapacity);
     nvmlShutdown();
@@ -136,73 +176,50 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
     //printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
     if (bytesRequested > currNode->size || currNode->offset >= m_AllocatorCapacity) // traversed too far
     {
-         
         return nullptr;
     }
-    else if (currNode->left == nullptr && currNode->right == nullptr && !currNode->free) // node is already occupied
+    else if (currNode->isOccupied()) // node is already housing an allocation
     {
         return nullptr;
     }
     else
     {
-        if (((bytesRequested > currNode->size/2 && bytesRequested <= currNode->size) || (bytesRequested <= MINALLOC_SIZE && currNode->size <= MINALLOC_SIZE)) && currNode->free) // this is the correct size to fill the allocation
+        if (((bytesRequested > currNode->size/currNode->total_children && bytesRequested <= currNode->size) || (bytesRequested <= MINALLOC_SIZE && currNode->size <= MINALLOC_SIZE)) && currNode->free) // this is the correct size to fill the allocation
         {
             m_Wasted += currNode->size - bytesRequested;
-            printf("Using size %lld requested %lld\n", currNode->size, bytesRequested);
             currNode->free = false;
             return currNode;
         }
-        //printf("case 3\n");
-        // Search left
-        if (currNode->left == nullptr)
-        {
-            nodeCount++;
-            currNode->left = new GPUBuddyNode(true, currNode->size/2, currNode->offset, currNode, true);
-            auto node = currNode->left;
-        }
-        node = FindAndCreateNode(currNode->left, bytesRequested);
-        if (node != nullptr)
-        {
-            currNode->free = false;
-            return node;
-        }
-        else
-        {
-            // found no valid node, lets delete the one we created
-            if (currNode->left->free) 
-            {
-                nodeCount--;
-                delete currNode->left;
-                currNode->left = nullptr;
-            }
-        }
 
-        if (currNode->right == nullptr)
+
+        for (int i = 0; i < currNode->total_children; i++)
         {
-            nodeCount++;
-            currNode->right = new GPUBuddyNode(true, currNode->size/2, currNode->offset + currNode->size/2, currNode, false);
-            auto node = currNode->right;
-        }
-        
-        node = FindAndCreateNode(currNode->right, bytesRequested);
-        if (node != nullptr)
-        {
-            currNode->free = false;
-            return node;
-        }
-        else
-        {
-            // found no valid node, lets delete the one we created
-            if (currNode->right->free)
+            if (currNode->children[i] == nullptr)
             {
-                nodeCount--;
-                delete currNode->right;
-                currNode->right = nullptr;
+                nodeCount++;
+                currNode->children[i] = new GPUBuddyNode(true, currNode->size/currNode->total_children,\
+                 currNode->offset + floor(i * currNode->size/currNode->total_children), currNode, i, currNode->total_children);
             }
+            node = FindAndCreateNode(currNode->children[i], bytesRequested);
+            if (node != nullptr)
+            {
+                currNode->free = false;
+                return node;
+            }
+            else
+            {
+                if (currNode->children[i]->free)
+                {
+                    nodeCount--;
+                    delete currNode->children[i];
+                    currNode->children[i] = nullptr;
+                }
+            }
+
         }
     }
 
-    return  nullptr;
+    return nullptr;
 }
 
 void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
@@ -217,29 +234,24 @@ void GPUAllocator::FreeNode(GPUBuddyNode *currNode)
 
     bool goodLeft = currNode->left == nullptr;
     bool goodRight = currNode->right == nullptr;
-    if (goodLeft && goodRight)
+
+    auto toUnset = currNode->GetChildrenCanUnset();
+    bool canDeleteNode = toUnset.size() == currNode->total_children;
+
+    if (canDeleteNode)
     {
         auto parent = currNode->parent;
-
-        if (currNode->leftNode)
-            parent->left = nullptr;
-        else
-            parent->right = nullptr;
-
-        /*
-            Are we making too many unnecessary calls to GPU calling this every time?
-        */
+        parent->children[currNode->child_no] = nullptr;
         nodeCount--;
         delete currNode;
         FreeNode(parent);
     }
     else
     {
-        if (goodLeft)
-            m_VB->UnsetData(currNode->offset, currNode->size/2);
-        if (goodRight)
-            m_VB->UnsetData(currNode->offset + currNode->size/2, currNode->size/2);
+        for (auto& child_index: toUnset)
+        {
+            m_VB->UnsetData(currNode->offset + floor(child_index *currNode->size/currNode->total_children), currNode->size/currNode->total_children);
+        }
     }
-
 }
 

@@ -11,12 +11,18 @@
 
 struct GPUBuddyNode
 {
-    GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, bool leftNode);
+    GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBuddyNode* parent, int childNum, int totalChildren);
+    ~GPUBuddyNode();
+    bool isOccupied();
+    std::vector<int> GetChildrenCanUnset();
     bool free;
     bool leftNode; // left node of parent
     uint64_t size;
     uint64_t offset;
+    int child_no;
+    int total_children;
     GPUBuddyNode* parent;
+    GPUBuddyNode** children;
     GPUBuddyNode* left;
     GPUBuddyNode* right;
 
@@ -35,7 +41,7 @@ struct GPUAllococation
 class GPUAllocator 
 {
 public:
-    GPUAllocator(float percentMemory, uint32_t alignment);
+    GPUAllocator(float percentMemory, uint32_t alignment, int treeFanout=2);
     ~GPUAllocator();
     
     void InsertHead(GPUBuddyNode* node);
