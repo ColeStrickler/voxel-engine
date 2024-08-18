@@ -227,7 +227,7 @@ void GLManager::MouseClickCallback(GLFWwindow *window, int button, int action, i
         int y = static_cast<int>(floor(objcoord.y));
 
         ChunkManager::PlaceBlock(chunkCoord, x, y, z, BlockType::Dirt);
-
+        printf("x %.3f, y %.3f, z %.3f\n", objcoord.x, objcoord.y, objcoord.z);
         printf("got x:%d,z:%d, actual x:%d,z:%d\n", chunkX, chunkZ, ChunkManager::m_CurrentChunk.first, ChunkManager::m_CurrentChunk.second);
     }
 }
@@ -473,4 +473,5 @@ void Camera::UpdateCameraVectors()
     // also re-calculate the Right and Up vector
     m_CameraRight = glm::normalize(glm::cross(m_CameraFront, m_WorldUp)); // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
     m_CameraUp = glm::normalize(glm::cross(m_CameraRight, m_CameraFront));
+    
 }

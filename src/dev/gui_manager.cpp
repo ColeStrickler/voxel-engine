@@ -202,6 +202,8 @@ void GUI::DisplayChunkManagementOptions()
         ImGui::SliderInt("Max Chunks", &MAX_CHUNKS, 0, 50000);
         ImGui::SliderFloat("Chunk Distance", &CHUNK_DISTANCE, 0.0f, 96.0f);
         ImGui::SliderFloat("Delete Distance", &DELETE_DISTANCE, 0.0f, 96.0f);
+        ImGui::Text("NumChunks: %d", ChunkManager::m_ActiveChunks.size());
+        ImGui::Text("Wasted Memory: %lld\n", ChunkManager::m_GPUMemoryManager->m_Wasted);
         if(ImGui::SliderFloat("View Distance", &ViewDistance, 0.1f, 10000.0f))
         {
             auto camera = gl.GetCamera();

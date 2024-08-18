@@ -10,7 +10,7 @@ GPUBuddyNode::GPUBuddyNode(bool isFree, uint64_t s_size, uint64_t offset, GPUBud
     right = nullptr;
 }
 
-GPUAllocator::GPUAllocator(float percentMemory, uint32_t alignment) : m_VertexAlignment(alignment)
+GPUAllocator::GPUAllocator(float percentMemory, uint32_t alignment) : m_VertexAlignment(alignment), m_Wasted(0)
 {
     assert(percentMemory > 0.0f && percentMemory <= 1.0f);
 
@@ -136,6 +136,7 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
     //printf("currNode->size = %lldd Total nodes: %d\n", currNode->size, nodeCount);
     if (bytesRequested > currNode->size || currNode->offset >= m_AllocatorCapacity) // traversed too far
     {
+         
         return nullptr;
     }
     else if (currNode->left == nullptr && currNode->right == nullptr && !currNode->free) // node is already occupied
@@ -146,6 +147,8 @@ GPUBuddyNode *GPUAllocator::FindAndCreateNode(GPUBuddyNode *currNode, uint64_t b
     {
         if (((bytesRequested > currNode->size/2 && bytesRequested <= currNode->size) || (bytesRequested <= MINALLOC_SIZE && currNode->size <= MINALLOC_SIZE)) && currNode->free) // this is the correct size to fill the allocation
         {
+            m_Wasted += currNode->size - bytesRequested;
+            printf("Using size %lld requested %lld\n", currNode->size, bytesRequested);
             currNode->free = false;
             return currNode;
         }

@@ -594,6 +594,7 @@ void ChunkManager::PerFrame()
                 if (!ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size() * sizeof(ChunkVertex)))
                 {
                     chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done
+                    logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() CHUNK_WORKER_CMD::ALLOC GPU chunk bufffer out of memory.");
                     delete chunk;
                     break;
                 }
@@ -627,6 +628,7 @@ void ChunkManager::PerFrame()
                 }
                 if (!ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size() * sizeof(ChunkVertex)))
                 {
+                    logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() CHUNK_WORKER_CMD::UPDATE GPU chunk bufffer out of memory.");
                     chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done
                     break;
                 }

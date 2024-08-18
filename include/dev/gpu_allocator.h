@@ -58,6 +58,8 @@ public:
     uint64_t m_MaxMemory;
     uint64_t m_UsedMemory;
     uint64_t m_AllocatorCapacity;
+
+    uint64_t m_Wasted;
 private:
     void FreeNode(GPUBuddyNode* currNode);
 
