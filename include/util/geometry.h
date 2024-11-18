@@ -7,6 +7,7 @@
 #include <glvertexarray.h>
 #include <renderobject.h>
 #include "util.h"
+#include "material.h"
 #include "logger.h"
 
 typedef struct 
@@ -19,7 +20,7 @@ typedef struct
 class Sphere
 {
 public:
-    Sphere(float radius, int resolution);
+    Sphere(float radius, int resolution, ShaderProgram* sp);
     ~Sphere();
 
     void addVertex(glm::vec3 pos, glm::vec3 normal, float phi, float theta);

@@ -179,19 +179,19 @@ if (glInvalidateBufferSubData == NULL) {
     //renderer.AddRenderObject(t_obj);
     //renderer.AddRenderObject(l_obj);
 
-    for (int i = -20; i < 20; i += 39)
+    for (int i = -20; i < 20; i += 19)
     {
-        for (int j = -20; j < 20; j += 39)
+        for (int j = -20; j < 20; j += 19)
         {
             auto obj = l_obj->Duplicate();
-            obj->Translate({1.0*i, 85.0f, 1.0*j});
+            obj->Translate({1.0f*i, 75.0f, 1.0f*j});
             renderer.AddRenderObject(obj);
         }
     }
 //
-    auto sphere = new Sphere(10.0f, 100);
+    auto sphere = new Sphere(1.0f, 100, &shaderProgram);
     printf("created sphere\n");
-    sphere->m_RenderObj->Translate(glm::vec3(0.0f, 30.0f, 0.0f));
+    sphere->m_RenderObj->Translate(glm::vec3(0.0f, 70.0f, 0.0f));
     renderer.AddRenderObject(sphere->m_RenderObj);
     
 

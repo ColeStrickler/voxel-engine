@@ -1,13 +1,13 @@
 #include "geometry.h"
 extern Logger logger;
 
-Sphere::Sphere(float sphereRadius, int resolution) : m_Resolution(resolution), m_Radius(sphereRadius)
+Sphere::Sphere(float sphereRadius, int resolution, ShaderProgram* sp) : m_Resolution(resolution), m_Radius(sphereRadius)
 {
     //angle step between vertices 
     m_StepValue = glm::two_pi<float>() / static_cast<float>(m_Resolution);
 
     m_HeightStep = glm::pi<float>() / static_cast<float>(m_Resolution);
-    printf("radius %.3f\n", m_Radius);
+    //printf("radius %.3f\n", m_Radius);
 
     int row = 0;
     float phi = -glm::half_pi<float>(); // start at bottom of sphere
@@ -18,7 +18,7 @@ Sphere::Sphere(float sphereRadius, int resolution) : m_Resolution(resolution), m
     for (; phi < glm::half_pi<float>() + m_HeightStep;)
     {
         y = m_Radius*glm::sin(phi);
-        printf("y %.3f\n", y);
+       // printf("y %.3f\n", y);
         radius = m_Radius * glm::cos(phi);
         
         int cell = 0;
@@ -68,23 +68,19 @@ Sphere::Sphere(float sphereRadius, int resolution) : m_Resolution(resolution), m
     //Shader* sphereVertexShader = new Shader(util::getcwd() + "/src/shaders/3D_Geometry/sphereVertex.glsl", GL_VERTEX_SHADER)
     //Shader* sphereFragmentShader = new Shader(util::getcwd() + "/src/shaders/3D_Geometry/sphereFragment.glsl", GL_FRAGMENT_SHADER);
     
-    Shader* sphereVertexShader = new Shader(util::getcwd() + "/src/shaders/vertex.glsl", GL_VERTEX_SHADER);
-    Shader* sphereFragmentShader = new Shader(util::getcwd() + "/src/shaders/fragment.glsl", GL_FRAGMENT_SHADER);
-    m_SphereShader = new ShaderProgram();
-    m_SphereShader->AddShader(sphereVertexShader);
-    m_SphereShader->AddShader(sphereFragmentShader);
 
-    if (!m_SphereShader->Compile())
-    {
-        logger.Log(LOGTYPE::ERROR, "Sphere::Sphere --> Unable to compile Sphere Shader.");
-        logger.Log(LOGTYPE::ERROR, "Error #" + std::to_string(m_SphereShader->CheckError()));
-        while (1)
-            ;
-    }
+    m_SphereShader = sp;
+
+    //if (!m_SphereShader->Compile())
+    //{
+    //    logger.Log(LOGTYPE::ERROR, "Sphere::Sphere --> Unable to compile Sphere Shader.");
+    //    logger.Log(LOGTYPE::ERROR, "Error #" + std::to_string(m_SphereShader->CheckError()));
+    //    while (1)
+    //        ;
+    //}
 
     m_RenderObj = new RenderObject(va, vb, m_SphereShader, ib, OBJECTYPE::RegularMaterial);
-    m_RenderObj->m_Material = materials[PHONG_MATERIAL::COPPER];
-
+    m_RenderObj->m_MaterialId = PHONG_MATERIAL::EMERALD;
 }
 
 Sphere::~Sphere()

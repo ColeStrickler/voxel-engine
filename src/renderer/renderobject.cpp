@@ -103,7 +103,6 @@ void RenderObject::DrawCall() const
 
     if (m_bUseIndexBuffer)
     {
-        printf("Count %d\n", count);
         // glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
     }
@@ -158,10 +157,10 @@ void RenderObject::HandlePhongShaders()
         m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
         m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);
         // lighting uniforms should already be set because we use the same shader for both light sources and other objects
-        //m_ShaderProgram->SetUniformVec3("material.ambient", m_Material.ambient);
-        //m_ShaderProgram->SetUniformVec3("material.diffuse", m_Material.diffuse);
-        //m_ShaderProgram->SetUniformVec3("material.specular", m_Material.specular);
-        //m_ShaderProgram->SetUniform1f("material.shininess", m_Material.shininess);
+        m_ShaderProgram->SetUniformVec3("material.ambient",     materials[m_MaterialId].ambient);
+        m_ShaderProgram->SetUniformVec3("material.diffuse",     materials[m_MaterialId].diffuse);
+        m_ShaderProgram->SetUniformVec3("material.specular",    materials[m_MaterialId].specular);
+        m_ShaderProgram->SetUniform1f("material.shininess",     materials[m_MaterialId].shininess);
         break;
     }
     case OBJECTYPE::TexturedObject:

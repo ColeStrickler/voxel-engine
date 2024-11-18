@@ -107,6 +107,6 @@ static Material materials[] = {
 
 
 
-
+void SetMaterial(Material* dst, PHONG_MATERIAL mat);
 
 #endif

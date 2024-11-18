@@ -15,3 +15,13 @@ void TextureObject::Bind()
     DiffuseMap->Bind();
     SpecularMap->Bind();
 }
+
+
+void SetMaterial(Material* dst, PHONG_MATERIAL mat)
+{
+
+    dst->ambient = materials[mat].ambient;
+    dst->specular = materials[mat].specular;
+    dst->diffuse = materials[mat].diffuse;
+    dst->shininess = materials[mat].shininess;
+}

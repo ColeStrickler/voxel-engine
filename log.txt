@@ -5,3 +5,8 @@
 [INFO]: RenderObject::Duplicate() --> duplicated object.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
 [INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: RenderObject::Duplicate() --> duplicated object.
+[INFO]: RenderObject::Duplicate() --> duplicated object.
