@@ -10,8 +10,9 @@
 #include "glvertexarray.h"
 #include "renderobject.h"
 #include "world.h"
-#include "block.h"
 #include "biome.h"
+#include "block.h"
+
 #include "structures.h"
 #include "gpu_allocator.h"
 #include "FastNoiseLite.h"
@@ -149,7 +150,7 @@ private:
 #define CHUNK_SIZE_OTHER (sizeof(IndexBuffer)+sizeof(VertexBuffer)+sizeof(VertexArray)+sizeof(RenderObject))
 #define CHUNK_TWEAK_PARAMETER 6
 #define MAX_CHUNKS_ (MEMORY_LIMIT_/ (CHUNK_TWEAK_PARAMETER*(sizeof(Chunk) + CHUNK_VERTICES_SIZE + CHUNK_INDICES_SIZE + CHUNK_SIZE_OTHER))) // safety net
-#define MAX_WORK_ITEMS 300
+#define MAX_WORK_ITEMS 50
 #define ACTIVE_WORK_ITEMS (m_WorkItems.size())
 #define CHUNK_WORKER_QUEUE_FULL (ACTIVE_WORK_ITEMS >= MAX_WORK_ITEMS) // this will allow us to catch up with deletions
 
@@ -163,29 +164,19 @@ enum CHUNK_WORKER_CMD
 
 
 
-struct BlockUpdate
-{
-    BlockUpdate();
-    BlockUpdate(int x, int y, int z, BlockType block);
-    BlockUpdate(const BlockUpdate& other);
-    int x;
-    int y;
-    int z;
-    BlockType type;
-};
-
 struct ChunkWorkItem
 {
 public:
     ChunkWorkItem(Chunk* nchunk, CHUNK_WORKER_CMD wcmd);
-    ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd, BlockUpdate &update);
+    ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd, BlockUpdate update_);
     ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd);
     std::string GetPositionAsString();
-    int x, z;
-
-    BlockUpdate update;
+    int x, y, z;
+    int sx, sy, sz; // start of structure
+    std::vector<BlockUpdate> update;
     Chunk* chunk;
     CHUNK_WORKER_CMD cmd;
+    std::vector<ChunkVertex> vertices;
 };
 
 
@@ -218,8 +209,10 @@ public:
     void AddChunkToRenderer(Chunk* chunk);
     void RemoveChunkFromRenderer(Chunk* chunk);
     static void ChunkWorkerThread();
+    static void GenStructures(float dist, int x, int z, const std::string& key);
     
     static std::unordered_map<std::string, Chunk*> m_UsedChunks;
+    static std::unordered_set<std::string> m_StructuresFinishedChunks;
     static std::condition_variable m_WorkerCV;
     static std::mutex m_WorkerLock;
     static std::mutex m_FinishedItemsLock;

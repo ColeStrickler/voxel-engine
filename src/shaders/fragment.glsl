@@ -137,7 +137,7 @@ void main()
 {
     switch(ObjectType)
     {
-        case 0: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break; // not implemented
+        case 0: FragColor = vec4(1.0, 0.3, 0.3, 1.0); break;
         case 1: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;
         case 2: FragColor = vec4(getTextureColor(), 1.0); break;
         case 3: FragColor = vec4(vec3(1.0, 1.0, 1.0), 1.0); break;

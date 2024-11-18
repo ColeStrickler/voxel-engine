@@ -23,7 +23,6 @@ struct BlockVertex {
     float texCoords[2]; // Texture coordinates
 };
 
-
 /*
     Index into this with block type. Gives the coordinates into the texture atlas (row, column),
     where 1=16px
@@ -80,6 +79,20 @@ enum BLOCKFACE
     TOP,
     BOTTOM
 };
+
+
+typedef struct BlockUpdate
+{
+    BlockUpdate();
+    BlockUpdate(int x, int y, int z, BlockType block);
+    BlockUpdate(const BlockUpdate& other);
+    int x;
+    int y;
+    int z;
+    BlockType type;
+}BlockUpdate;
+
+
 
 class Block
 {

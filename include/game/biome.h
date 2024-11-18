@@ -1,13 +1,17 @@
 #ifndef BIOME_H
 #define BIOME_H
-#include "block.h"
-#include "structures.h"
 enum BIOMETYPE {
     HILLS,
     PLAINS,
     EXTREME_HILLS,
     Desert,
 };
+
+#include "block.h"
+#include "structures.h"
+
+
+
 
 namespace BIOME
 {

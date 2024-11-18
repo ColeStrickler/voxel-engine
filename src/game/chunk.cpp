@@ -1,5 +1,5 @@
 #include "chunk.h"
-
+#include "structures.h"
 extern GLManager gl;
 extern Logger logger;
 extern Renderer renderer;
@@ -15,7 +15,8 @@ std::queue<ChunkWorkItem *> ChunkManager::m_WorkItems;
 std::mutex ChunkManager::m_ToDeleteLock;
 std::vector<std::string> ChunkManager::m_ToDeleteList;
 std::queue<ChunkWorkItem*> ChunkManager::m_FinishedWork;
-std::unordered_map<std::string, Chunk *> ChunkManager::m_UsedChunks;
+std::unordered_map<std::string, Chunk*> ChunkManager::m_UsedChunks;
+std::unordered_set<std::string> ChunkManager::m_StructuresFinishedChunks;
 ShaderProgram *ChunkManager::m_ChunkShader;
 RenderObject *ChunkManager::m_RenderObj;
 GPUAllocator *ChunkManager::m_GPUMemoryManager;
@@ -136,6 +137,56 @@ bool Chunk::SetBlock(int x, int y, int z, BlockType block)
             return true;   
         }
     }
+    else
+    {
+        //return false;
+        // get adjacent chunk --> will be useful for structures
+        Chunk* chunk = nullptr;
+        auto& used = ChunkManager::m_UsedChunks;
+        if (x < 0)
+        {
+            auto it = used.find(pair2String(m_xCoord-1, m_zCoord));
+            if (it != used.end() && it->second != nullptr)
+            {
+                chunk = it->second;
+                chunk->SetBlock(x+15, y, z, block);
+                return true;
+            }
+        }
+        else if (x > 15)
+        {
+            auto it = used.find(pair2String(m_xCoord+1, m_zCoord));
+            if (it != used.end() && it->second != nullptr)
+            {
+                chunk = it->second;
+                chunk->SetBlock(x-15, y, z, block);
+                return true;
+            }
+        }
+        else if (z < 0)
+        {
+            auto it = used.find(pair2String(m_xCoord-1, m_zCoord));
+            if (it != used.end() && it->second != nullptr)
+            {
+                chunk = it->second;
+                chunk->SetBlock(x, y, z+15, block);
+                return true;
+            }
+        }
+        else if (z > 15)
+        {
+            auto it = used.find(pair2String(m_xCoord-1, m_zCoord));
+            if (it != used.end() && it->second != nullptr)
+            {
+                chunk = it->second;
+                chunk->SetBlock(x, y, z-15, block);
+                return true;
+            }
+        }
+    }
+
+
+
     return false;
 }
 
@@ -391,7 +442,7 @@ ChunkManager::ChunkManager()
     m_BiomeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     m_BiomeNoise.SetFrequency(0.0003f);
     m_BiomeNoise.SetSeed(DEFAULT_NOISE_SEED);
-    m_StructureNoise.SetNoiseType(FastNoiseLite::NoiseType_Value);
+    m_StructureNoise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
     m_StructureNoise.SetFrequency(0.01f);
     m_StructureNoise.SetSeed(DEFAULT_NOISE_SEED);
 
@@ -518,10 +569,18 @@ void ChunkManager::ChunkWorkerThread()
             }
             case CHUNK_WORKER_CMD::STRUCTURE_ADD:
             {
-                // float biomeNoise = m_BiomeNoise.GetNoise(static_cast<float>(work->x), static_cast<float>(work->z));
-                // auto biome = Chunk::BiomeSelect(biomeNoise);
-                // float structureNoise = m_StructureNoise.GetNoise(static_cast<float>(work->x), static_cast<float>(work->z));
-                // auto structureType = BIOME::GetStructure(biome, structureNoise);
+
+                 auto structureType = (STRUCTURETYPE)work->y; // we stored this here 
+                 if (structureType != STRUCTURETYPE::NO_STRUCTURE)
+                 {
+                    auto updates = structure::GenVertices(structureType, work->x, work->sy, work->z);
+                    work->cmd = CHUNK_WORKER_CMD::UPDATE;
+                    work->update.insert(work->update.begin(), updates.begin(), updates.end());
+                    std::unique_lock flock(m_FinishedItemsLock);
+                    m_FinishedWork.push(work);
+                 }
+                 else
+                    delete work;
 
                 break;
             }
@@ -535,6 +594,8 @@ void ChunkManager::ChunkWorkerThread()
         //delete work;
     }
 }
+
+
 
 ChunkManager::~ChunkManager()
 {
@@ -573,6 +634,7 @@ void ChunkManager::PerFrame()
         {
             m_GPUMemoryManager->FreeData(td);
             m_UsedChunks.erase(td);
+            m_StructuresFinishedChunks.erase(td);
         }
         m_ToDeleteList.clear();
     }
@@ -611,25 +673,34 @@ void ChunkManager::PerFrame()
                 auto it = m_UsedChunks.find(pair2String(item->x, item->z));
                 if (it == m_UsedChunks.end()) // a new chunk, not an update
                 {
+                    if (item->update.size() > 1)
+                        printf("discarding structure\n");
+
                     break;
                 }
 
                 auto chunk = it->second;
                 if (chunk == nullptr)
                 {
+                    if (item->update.size() > 1)
+                        printf("discarding structure 2\n");
+
                     break;
                 }
 
                
 
-
-                auto& update = item->update;
-                if(!chunk->SetBlock(update.x, update.y, update.z, update.type))
+                for (auto& update: item->update)
                 {
-                    printf("failed set block\n");
-                    break;
+                    if(!chunk->SetBlock(update.x, update.y, update.z, update.type))
+                    {
+                        printf("failed set block\n");
+                       // break;
+                    }
                 }
-                if (!ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size() * sizeof(ChunkVertex)))
+                printf("update size %d\n", chunk->m_Vertices.size());
+                
+                if (chunk->m_Vertices.size() && !ChunkManager::m_GPUMemoryManager->PutData(chunk->GetPositionAsString(), chunk->m_Vertices.data(), chunk->m_Vertices.size() * sizeof(ChunkVertex)))
                 {
                     logger.Log(LOGTYPE::WARNING, "ChunkManager::PerFrame() CHUNK_WORKER_CMD::UPDATE GPU chunk bufffer out of memory.");
                     chunk->GenerateChunkMesh(m_ChunkShader); // must do this here as it didnt get done
@@ -703,7 +774,7 @@ void ChunkManager::CleanFarChunks()
         else
         {
             it++;
-        }
+        }       
     }
 }
 
@@ -728,6 +799,53 @@ void ChunkManager::CleanFarChunks(float div)
         {
             it++;
         }
+    }
+}
+
+void ChunkManager::GenStructures(float dist, int x, int z, const std::string& key)
+{
+    
+    if (dist < STRUCTURES_GEN_DISTANCE && m_StructuresFinishedChunks.find(key) == m_StructuresFinishedChunks.end())
+    {
+        int nx = x * CHUNK_WIDTH;
+        int nz = z * CHUNK_WIDTH;
+        float biomeNoise = m_BiomeNoise.GetNoise(static_cast<float>(nx), static_cast<float>(nz));
+        auto biome = Chunk::BiomeSelect(biomeNoise);
+        
+    // printf("%.2f\n", biomeNoise);
+
+        
+        for (int i = 0; i < CHUNK_WIDTH; i++)
+        {
+            for (int j = 0; j < CHUNK_WIDTH; j++)
+            {
+                float structureNoise = util::Random(); //m_StructureNoise.GetNoise(static_cast<float>(nx+i), static_cast<float>(nz+j));
+                auto structureType = BIOME::GetStructure(biome, structureNoise);
+                if (structureType == STRUCTURETYPE::NO_STRUCTURE)
+                    continue;
+                float heightnoise = ChunkManager::m_ChunkHeightNoise.GetNoise(static_cast<float>(nx+i), static_cast<float>(nz+j));
+                int surface = static_cast<int>(DEFAULT_CHUNK_GROUND + (heightnoise * BIOME::GetSurfaceVariation(biome)));
+
+                if (m_UsedChunks.find(key) != m_UsedChunks.end())
+                {
+                    ChunkWorkItem *work = new ChunkWorkItem(x, z, CHUNK_WORKER_CMD::STRUCTURE_ADD);
+                    work->y = (unsigned int)structureType;
+                    work->sx = nx + i;
+                    work->sz = nz + + j;
+                    work->sy =  surface;
+
+                    printf("new struct at : %d, %d, %d\n", nx+i, surface+1, nz+j);
+                    std::unique_lock lk(m_WorkerLock);
+                    m_WorkItems.push(work);
+                    lk.unlock();
+                    m_WorkerCV.notify_one();
+                    m_StructuresFinishedChunks.insert(key);
+                }
+            }
+        }
+        
+        
+         
     }
 }
 
@@ -767,19 +885,16 @@ void ChunkManager::MapMove()
 
                 auto key = pair2String(cx, cz);
 
-                // if (dist < STRUCTURES_GEN_DISTANCE)
+                
+                auto used_it = m_UsedChunks.find(key);
+                bool used = used_it != m_UsedChunks.end();
+                //if (used)
                 //{
-                //     m_StructureNoise.GetNoise(static_cast<float>(cx), static_cast<float>(cz));
-                //     if (m_UsedChunks.find(key) != m_UsedChunks.end())
-                //     {
-                //         ChunkWorkItem *work = new ChunkWorkItem(cx, cz, CHUNK_WORKER_CMD::STRUCTURE_ADD);
-                //         workItems.push_back(work);
-                //     }
-                // }
-
-                bool used = m_UsedChunks.find(key) != m_UsedChunks.end();
-                if (used)
-                    continue;
+                //    if (used_it->second != nullptr)
+                //        GenStructures(dist, cx, cz, key);
+                //    continue;
+                //}
+                   
 
                 if (dist < CHUNK_DISTANCE)
                 {
@@ -810,9 +925,9 @@ ChunkWorkItem::ChunkWorkItem(Chunk *nchunk, CHUNK_WORKER_CMD wcmd) : chunk(nchun
 {
 }
 
-ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd, BlockUpdate &update):  x(xcoord), z(zcoord), cmd(wcmd), update(update)
+ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd, BlockUpdate update_):  x(xcoord), z(zcoord), cmd(wcmd)
 {
-
+    update.push_back(update_);
 }
 
 ChunkWorkItem::ChunkWorkItem(int xcoord, int zcoord, CHUNK_WORKER_CMD wcmd) : x(xcoord), z(zcoord), cmd(wcmd), chunk(nullptr)

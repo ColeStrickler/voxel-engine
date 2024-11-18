@@ -72,15 +72,23 @@ STRUCTURETYPE BIOME::GetStructure(BIOMETYPE biome, float structureNoise)
 
 STRUCTURETYPE BIOME::Hills_GetStructureType(float structureNoise)
 {
-    return STRUCTURETYPE::tree1;
+    if (structureNoise > STRUCTURES_GEN_THRESHOLD)
+        return STRUCTURETYPE::tree1;
+    return STRUCTURETYPE::NO_STRUCTURE;
 }
 
 STRUCTURETYPE BIOME::Plains_GetStructureType(float structureNoise)
 {
-    return STRUCTURETYPE::tree1;
+    if (structureNoise > STRUCTURES_GEN_THRESHOLD)
+        return STRUCTURETYPE::tree1;
+
+    return STRUCTURETYPE::NO_STRUCTURE;
 }
 
 STRUCTURETYPE BIOME::Desert_GetStructureType(float structureNoise)
 {
-    return STRUCTURETYPE::tree1;
+    if (structureNoise > STRUCTURES_GEN_THRESHOLD)
+        return STRUCTURETYPE::tree1;
+
+    return STRUCTURETYPE::NO_STRUCTURE;
 }

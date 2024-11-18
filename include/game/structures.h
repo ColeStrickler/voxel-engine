@@ -1,10 +1,19 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
+
+typedef enum STRUCTURETYPE {
+    NO_STRUCTURE,
+    tree1,
+}STRUCTURETYPE;
+
+
 #include "block.h"
+#include "chunk.h"
 #include <math.h>
 
+
 #define STRUCTURES_GEN_DISTANCE (std::max(CHUNK_DISTANCE - 4.0f, 1.0f))
-#define STRUCTURES_GEN_THRESHOLD 0.
+#define STRUCTURES_GEN_THRESHOLD 0.999
 
 struct StructureComponent {
     int x;
@@ -14,9 +23,11 @@ struct StructureComponent {
 };
 
 
-enum STRUCTURETYPE {
-    NO_STRUCTURE,
-    tree1,
+
+
+namespace structure {
+   std::vector<BlockUpdate> GenVertices(STRUCTURETYPE type, int x, int y, int z);
+
 };
 
 

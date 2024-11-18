@@ -21,6 +21,7 @@
 #include "model_loader.h"
 #include "chunk.h"
 #include "gpu_allocator.h"
+#include "geometry.h"
 #include <utility>
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 extern Logger logger;
@@ -187,7 +188,12 @@ if (glInvalidateBufferSubData == NULL) {
             renderer.AddRenderObject(obj);
         }
     }
-
+//
+    auto sphere = new Sphere(10.0f, 100);
+    printf("created sphere\n");
+    sphere->m_RenderObj->Translate(glm::vec3(0.0f, 30.0f, 0.0f));
+    renderer.AddRenderObject(sphere->m_RenderObj);
+    
 
     //for (int i = 0; i < 16; i += 1)
     //{
@@ -252,7 +258,7 @@ if (glInvalidateBufferSubData == NULL) {
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
-        chunkManager.PerFrame();
+       // chunkManager.PerFrame();
         gl.PerFrame();
         logger.WriteLogs();
          
