@@ -27,7 +27,6 @@ public:
 
 
     RenderObject* m_RenderObj;
-
 private:
     int m_Resolution;
     float m_Radius;
@@ -37,6 +36,27 @@ private:
     std::vector<SphereVertex> m_Vertices;
     std::vector<unsigned int> m_Indices;
     ShaderProgram* m_SphereShader;
+};
+
+
+class Function3D
+{
+public:
+    Function3D(float xRange, float yRange, float zRange, int resolution, ShaderProgram* sp);
+    ~Function3D();
+    void addVertex(glm::vec3 pos, glm::vec3 normal);
+
+    std::vector<SphereVertex> m_Vertices;
+    std::vector<unsigned int> m_Indices;
+    RenderObject* m_RenderObj;
+    ShaderProgram* m_FuncShader;
+private:
+    int m_Resolution;
+    float m_StepValue;
+    float m_HeightStep;
+    float m_xRange;
+    float m_yRange;
+    float m_zRange;
 };
 
 
