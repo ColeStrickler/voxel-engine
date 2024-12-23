@@ -114,6 +114,7 @@ void GPUAllocator::FreeData(const std::string &key)
     EMIT_PROFILE_TOKEN
     auto& nodes = m_AllocTracker[key];
     for (auto& node : nodes)
+    
     {    FreeNode(node);
         //printf("free data %lld\n", node.offset);
         //m_VB->UnsetData(node.offset, node.size);

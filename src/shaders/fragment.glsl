@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 struct Material {
     vec3 color;
     vec3 ambient;
@@ -54,6 +54,7 @@ uniform int ObjectType;
 in vec3 Normal;
 in vec3 FragPos;
 in vec2 TexCoords;
+
 
 
 

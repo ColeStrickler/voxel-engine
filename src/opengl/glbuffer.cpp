@@ -9,6 +9,7 @@ VertexBuffer::VertexBuffer(uint64_t size)
     glBindBuffer(GL_ARRAY_BUFFER, m_BufferId);
     glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, NULL); // init to zero
+    //UnsetData(0, size);
 }
 
 VertexBuffer::VertexBuffer(float *data, uint64_t size)
@@ -70,6 +71,7 @@ void VertexBuffer::UnsetData(uint64_t offset, uint64_t size)
     std::vector<char> vec(size, 0x0);
     glBufferSubData(GL_ARRAY_BUFFER, offset, vec.size(), vec.data());
     glInvalidateBufferSubData(m_BufferId, offset, size);
+
 }
 
 IndexBuffer::IndexBuffer(uint32_t *indices, uint32_t count) : m_Count(count)
@@ -137,4 +139,26 @@ void BufferLayout::InitLayout()
         offset += element->m_Size;
         m_Stride += element->m_Size;
     }
+}
+#include <iostream>
+SSBO::SSBO(const std::vector<unsigned int>& data, int bindPoint) : m_BindPoint(bindPoint)
+{
+
+    glGenBuffers(1, &m_SSBOID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_SSBOID);
+    
+    // Upload data to GPU
+    glBufferData(GL_SHADER_STORAGE_BUFFER, data.size() * sizeof(int), data.data(), GL_STATIC_DRAW);
+
+}
+
+SSBO::~SSBO()
+{
+    glDeleteBuffers(1, &m_SSBOID);
+}
+
+void SSBO::Bind()
+{
+    // Bind SSBO to binding point 0
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_BindPoint, m_SSBOID);
 }

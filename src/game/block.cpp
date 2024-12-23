@@ -114,3 +114,16 @@ void PrintBlockVertex(BlockVertex &v)
     //while(1);
     printf("{{%.2f, %.2f, %.2f}, {%.2f, %.2f}, {%.2f, %.2f, %.2f}}\n", v.position[0],v.position[1],v.position[2],v.texCoords[0],v.texCoords[1],v.normal[0],v.normal[1],v.normal[2]);
 }
+
+std::vector<uint32_t> FlattenTextureIndices(const std::vector<std::vector<std::pair<uint32_t, uint32_t>>>& bfi)
+{
+    std::vector<uint32_t> flattenedIndexes;
+    // Store as: blockType -> faces -> (layer, index)
+    for (const auto& block : bfi) {
+        for (const auto& face : block) {
+            flattenedIndexes.push_back(face.first); // Texture layer
+            flattenedIndexes.push_back(face.second); // Texture index
+        }
+    }
+    return flattenedIndexes;
+}

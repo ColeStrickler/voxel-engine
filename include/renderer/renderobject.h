@@ -40,6 +40,7 @@ public:
     void Translate(const glm::vec3& translation_vec);
     void Rotate(const glm::vec3& rotation_axis, float angle);
     void Scale(float scale);
+    void ScaleMatrix(const glm::mat4& scaleMat);
     void DrawCall() const;
     ShaderProgram* GetShaderProgram() const {return m_ShaderProgram;}
     OBJECTYPE GetType() const {return m_ObjectType;}

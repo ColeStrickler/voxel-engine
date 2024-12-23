@@ -45,11 +45,7 @@ const std::vector<std::vector<std::pair<uint32_t, uint32_t>>> BlockFaceIndexes =
 
 
 
-
-
-
-
-
+std::vector<uint32_t> FlattenTextureIndices(const std::vector<std::vector<std::pair<uint32_t, uint32_t>>>& blockFaceIndices);
 
 
 enum class BlockType : short

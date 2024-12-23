@@ -252,17 +252,18 @@ void GLManager::HandleShowGlStats()
 void GLManager::DisplayGlStats()
 {
     auto KEYSTATUS = m_KeyPressed[GLFW_KEY_F2];
-
+    
     auto screen_height = gl.GetCamera()->GetScreenHeight();
     auto text_color = glm::vec3(0.05f, 1.0f, 0.3f);
     if (KEYSTATUS == GLFW_PRESS || KEYSTATUS == GLFW_REPEAT) 
     {
+        
         std::string FPS = "FPS: " + std::to_string(m_GlStats.m_FramesPerSecond);
         renderer.RenderText(FPS.c_str(), 30.0f, screen_height - 30.0f, 0.6f, text_color);
-
+        
         std::string MEMORY_USAGE = "Memory Usage: " + std::to_string(util::GetMemoryUsageKb()) +"Kb";
         renderer.RenderText(MEMORY_USAGE.c_str(), 30.0f, screen_height - 60.0f, 0.6f, text_color);
-
+        
         auto cameraPos = GetCamera()->GetPosition();
         std::string POSITION = "X: " + std::to_string(cameraPos.x) + " Y: " + std::to_string(cameraPos.y) + " Z: " + std::to_string(cameraPos.z);
         renderer.RenderText(POSITION.c_str(), 30.0f, screen_height - 90.0f, 0.6f, text_color);

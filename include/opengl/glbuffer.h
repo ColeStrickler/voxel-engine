@@ -160,6 +160,18 @@ private:
 
 
 
+class SSBO
+{
+public:
+    SSBO(const std::vector<unsigned int>& data, int bindPoint);
+    ~SSBO();
+
+    void Bind();
+
+private:
+    GLuint m_SSBOID;
+    int m_BindPoint;
+};
 
 
 #endif

@@ -1,4 +1,4 @@
-#version 330 core
+#version 430 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in int aFaceBlockType;
 layout (location = 2) in vec2 aTexCoords;
@@ -12,6 +12,8 @@ out vec2 TexCoords;
 
 int TEXTURE_MAP_WIDTH = 1024;
 int TEXTURE_MAP_HEIGHT = 512;
+
+
 
 vec3 GetFaceNormal(int face)
 {
@@ -62,10 +64,9 @@ vec2 GetTextureCoords(int face, int blocktype)
 
     LearnOpenGL says this is a costly operation to perform on the shaders and should be done on the CPU
 */
-
 void main()
 {
-
+    
     int face = ((aFaceBlockType >> 24) & 0xFF);
     int blocktype = (aFaceBlockType & 0xFFFF);
 

@@ -56,7 +56,11 @@ void VertexArray::AddVertexBuffer(VertexBuffer* vertex_buffer)
     for (auto& element: elements)
     {
         glEnableVertexAttribArray(index); // must enable the index for it to be used
-        glVertexAttribPointer(index, element->GetCount(), ShaderDataTypeToGLEnum(element->GetType()), element->m_Normalized, layout.GetStride(), (const void*)offset);
+        if (element->GetType() == ShaderDataType::Int || element->GetType() == ShaderDataType::Int2 \
+        || element->GetType() == ShaderDataType::Int3 || element->GetType() == ShaderDataType::Int4)
+            glVertexAttribIPointer(index, element->GetCount(), ShaderDataTypeToGLEnum(element->GetType()), layout.GetStride(), (const void*)offset);
+        else
+            glVertexAttribPointer(index, element->GetCount(), ShaderDataTypeToGLEnum(element->GetType()), element->m_Normalized, layout.GetStride(), (const void*)offset);
         offset += element->m_Size;
         index++;
     }

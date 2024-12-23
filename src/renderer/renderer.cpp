@@ -261,8 +261,8 @@ void TextRenderer::RenderText(const std::string& text, float x, float y, float s
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
+    
+    
     m_TextShader->Bind();
     m_TextShader->SetUniformVec3("textColor", color);
     auto proj = gl.GetCamera()->GetOrthoProjectionMatrix();
@@ -326,7 +326,7 @@ void TextRenderer::RenderText(const std::string& text, float x, float y, float s
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-
+    
     glDisable(GL_CULL_FACE);
     glDisable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ZERO);
@@ -357,5 +357,6 @@ bool TextRenderer::BuildTextShader()
         logger.Log(LOGTYPE::ERROR, "TextRenderer::BuildTextShader() --> unable to compile m_TextShader.\n");
         return false;
     }
+    printf("compiled text shader\n");
     return true;
 }

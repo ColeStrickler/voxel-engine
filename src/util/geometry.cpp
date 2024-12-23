@@ -5,10 +5,15 @@ extern Logger logger;
 
 Function3D::Function3D(float xRange, float yRange, float zRange, int resolution, ShaderProgram *sp) : m_xRange(xRange), m_yRange(yRange), m_zRange(zRange)
 {
+
+
+    float height_scale = 0.5f;
     m_HeightStep = (zRange*2.0f) / resolution;
     m_StepValue = (xRange*2.0f) / resolution;
     m_Resolution = resolution;
 
+
+    glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, height_scale, 1.0f));
 
 
     int row = 0;
@@ -23,17 +28,24 @@ Function3D::Function3D(float xRange, float yRange, float zRange, int resolution,
             // substitute a equation calculator here
             // y = equation->eval(x, z);
             // for now y = x^2 + z^2
-            float y = (x*x) + (z*z);
-
+            float y = (x*x);//+z*z*z*z);
             // this may need to be reworked - may break things in how we push indices
-            //if (y > m_yRange)
-            //    continue;
+            if (y > m_yRange)
+                y = m_yRange;
+            if (y < -m_yRange)
+                y = -m_yRange;
 
 
             // gradient = normal 
             //printf("xInit = %.3f\n", xval);
-            auto normal = glm::normalize(glm::vec3(-2*x, 1, -2*z));
-            addVertex(glm::vec3(x, y, z), normal);
+            auto normal = glm::normalize(glm::vec3(-2*x, 1, 0));
+
+
+            // 2D
+            if (z < 0)
+                addVertex(glm::vec3(x, y, -0.01), normal);
+            else
+                addVertex(glm::vec3(x, y, 0.01), normal);
             //printf("loc: %.3f,%.3f,%.3f\tnormal %.3f,%.3f,%.3f\n",x,y,z,normal.x,normal.y,normal.z);
             if (row)
             {
@@ -86,6 +98,8 @@ Function3D::Function3D(float xRange, float yRange, float zRange, int resolution,
 
     m_RenderObj = new RenderObject(va, vb, m_FuncShader, ib, OBJECTYPE::RegularMaterial);
     m_RenderObj->m_MaterialId = PHONG_MATERIAL::BRONZE;
+
+    m_RenderObj->ScaleMatrix(scaleMatrix);
 }
 
 void Function3D::addVertex(glm::vec3 pos, glm::vec3 normal)

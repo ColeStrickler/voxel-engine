@@ -5,6 +5,9 @@
 extern Renderer renderer;
 extern GLManager gl;
 extern Logger logger;
+extern ChunkManager* globalChunkManager;
+
+
 RenderObject::RenderObject(VertexArray *va, VertexBuffer *vb, ShaderProgram *sp, IndexBuffer *ib, OBJECTYPE type) : m_VertexArray(va),
                                                                                                                     m_ShaderProgram(sp), m_Model(glm::mat4(1.0f)), m_Position(glm::vec3(0.0f)), m_bWireFrame(false), m_ObjectType(type), m_bStencilOutline(false),
                                                                                                                     m_bDelete(false)
@@ -89,6 +92,11 @@ void RenderObject::Scale(float scale)
     m_Model = glm::scale(m_Model, glm::vec3(scale, scale, scale));
 }
 
+void RenderObject::ScaleMatrix(const glm::mat4 &scaleMat)
+{
+    m_Model = scaleMat * m_Model;
+}
+
 void RenderObject::DrawCall() const
 {
     WireFrame_RAII wireframe(m_bWireFrame);
@@ -100,6 +108,13 @@ void RenderObject::DrawCall() const
     }
     StencilOutline_RAII stencil(m_bStencilOutline, (RenderObject *)this);
     int count = m_VertexArray->GetCount();
+
+
+    if (m_ObjectType == OBJECTYPE::ChunkMesh)
+    {   
+        glDrawArrays(GL_POINTS, 0, count);
+        return;
+    }
 
     if (m_bUseIndexBuffer)
     {
@@ -189,6 +204,7 @@ void RenderObject::HandlePhongShaders()
     }
     case OBJECTYPE::ChunkMesh:
     {
+        globalChunkManager->m_BlockTextureIndexMap->Bind();
         auto camera_pos = gl.GetCamera()->GetPosition();
         m_ShaderProgram->SetUniformVec3("viewPos", camera_pos);
         m_ShaderProgram->SetUniform1i("ObjectType", m_ObjectType);

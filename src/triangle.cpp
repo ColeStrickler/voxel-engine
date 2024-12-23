@@ -34,7 +34,7 @@ GLManager gl;
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-
+ChunkManager* globalChunkManager;
 
 
 
@@ -106,7 +106,7 @@ if (glInvalidateBufferSubData == NULL) {
 
 
     ChunkManager chunkManager;
-
+    globalChunkManager = &chunkManager;
     
 
 
@@ -177,26 +177,13 @@ if (glInvalidateBufferSubData == NULL) {
     
 
     //renderer.AddRenderObject(t_obj);
-    //renderer.AddRenderObject(l_obj);
+    renderer.AddRenderObject(l_obj);
 
-    for (int i = -20; i < 20; i += 5)
-    {
-        for (int j = -20; j < 20; j += 5)
-        {
-            auto obj = l_obj->Duplicate();
-            obj->Translate({1.0f*i, 95.0f, 1.0f*j});
-            renderer.AddRenderObject(obj);
-        }
-    }
-    //l_obj->Translate(glm::vec3(0.0f, 90.0f, 0.0f));
+    
     //renderer.AddRenderObject(l_obj);
 //
     //auto sphere = new Sphere(1.0f, 100, &shaderProgram);
-    auto sphere = new Function3D(2.0f, 20.0f, 2.0f, 500, &shaderProgram);
-    printf("created sphere\n");
-    sphere->m_RenderObj->Translate(glm::vec3(0.0f, 70.0f, 0.0f));
-    renderer.AddRenderObject(sphere->m_RenderObj);
-    
+
 
     //auto 
 
@@ -264,7 +251,7 @@ if (glInvalidateBufferSubData == NULL) {
     while (!glfwWindowShouldClose(gl.GetWindow()))
     {
         // gl.CalcDeltaTime();
-       // chunkManager.PerFrame();
+        chunkManager.PerFrame();
         gl.PerFrame();
         logger.WriteLogs();
          
